@@ -1,0 +1,65 @@
+line-length = 120
+
+[lint]
+select = [
+    'E',
+    'F',
+    'W',
+    'I',
+    'N',
+    'UP',
+    'B',
+    'BLE',
+    'C4',
+    'T201',
+    'T203',
+    'SIM',
+    'RUF',
+    'PTH',
+    'PL',
+    'ARG',
+    'ERA',
+]
+
+ignore = [
+    'E501',
+    'PLR0913',
+    'PLR2004',
+    'PLR0912',
+    'PLR0915',
+    'PLR0911',
+    'N802',
+    'N803',
+    'N806',
+    'N818',
+    'SIM108',
+    'B008',
+    'B904',
+    'RUF006',
+    'RUF012',
+    'RUF013',
+    'PTH',
+    'ARG001',
+    'ARG002',
+    'ARG005',
+    'UP007',
+    'PLW0108',
+]
+
+[lint.per-file-ignores]
+'__init__.py' = ['F401']
+'**/scripts/*.py' = ['T201']
+'**/__main__.py' = ['T201', 'E402']
+'**/config.py' = ['RUF001', 'RUF013']
+# French copy with typographic apostrophes (’) is the point of these files.
+'**/prompts.py' = ['RUF001']
+
+[lint.isort]
+force-single-line = false
+known-first-party = ['robot_agent', 'mac_server']
+
+[format]
+quote-style = 'single'
+indent-style = 'space'
+skip-magic-trailing-comma = false
+line-ending = 'auto'

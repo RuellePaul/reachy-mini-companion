@@ -1,0 +1,30 @@
+// Un conte du soir : de la narration, des silences, trois voix.
+@NARRATEUR (Vindemiatrix) : conteuse douce et lente, voix feutrée, comme une histoire qu'on lit avant de dormir
+@LE PETIT ROBOT (Puck) : petit robot rêveur, voix timide et émerveillée
+@LA MOUETTE (Laomedeia) : mouette gouailleuse, rapide, moqueuse mais gentille
+
+Il était une fois un petit robot qui vivait sur un bureau, entre une lampe et une tasse de café froid.
+
+[lève les yeux] Chaque soir, par la fenêtre, il regardait le ciel, et il se demandait ce qu'il y avait au bout.
+
+LE PETIT ROBOT (tout bas, pour lui-même) : [thoughtful1] La mer. Ça doit être la mer.
+
+Un matin, une mouette se posa sur le rebord de la fenêtre. [tourne à droite]
+
+LA MOUETTE : Oh, peuchère ! <rire> Un robot qui rêve ? On aura tout vu !
+
+LE PETIT ROBOT (timidement) : [shy1] Tu… tu as déjà vu la mer ?
+
+LA MOUETTE : Si j'ai vu la mer ? Mon pauvre, j'habite dessus ! C'est grand, c'est bleu, et ça sent la frite.
+
+[face au public] [amazed1] Le petit robot ne pouvait pas quitter son bureau. Alors la mouette lui raconta tout. Les vagues. Le sel. Les bateaux qui rentrent le soir.
+
+[pause 2]
+
+Et quand elle s'envola, il ferma les yeux… et pour la première fois, il entendit la mer.
+
+LE PETIT ROBOT (dans un souffle) : [serenity1] Merci.
+
+[pause 1]
+
+(très doucement) Fin.

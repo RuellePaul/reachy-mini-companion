@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.claude/
+.idea/
+.DS_Store
+node_modules/
+dist/
+.husky/_/

@@ -1,0 +1,35 @@
+[project]
+name = "reachy-mini-companion"
+version = "2.0.0"
+description = "A Reachy Mini you talk to: the robot agent (Gemini Live) and its Mac companion server"
+requires-python = ">=3.11"
+# The Mac server. The robot's own dependencies live in its venv (`make robot-deps`).
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.35", # ws="websockets-sansio"
+    "pydantic>=2.6",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+    # uvicorn needs it for the dashboard's WebSocket (plain uvicorn ships none); the studio reads the daemon's.
+    "websockets>=13.0",
+    # The 3D preview runs the robot's own motion code (robot_agent/motion.py) on the Mac.
+    "numpy>=1.26",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+# ruff is pinned exactly: ruff.toml is written against this release's rule set.
+# google-genai and Pillow are robot dependencies, here so the robot's tests run on the Mac and in CI;
+# the google-genai range is also robot-deps' (Makefile), robot_agent/boot.py's and scripts/doctor.sh's.
+dev = [
+    "ruff==0.15.17",
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "google-genai>=2.24,<3",
+    "Pillow>=10.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--import-mode=importlib -q"

@@ -1,0 +1,280 @@
+[
+    {
+        "call": "api.state",
+        "method": "GET",
+        "path": "/api/state",
+        "body": null
+    },
+    {
+        "call": "api.settings",
+        "method": "GET",
+        "path": "/api/settings",
+        "body": null
+    },
+    {
+        "call": "api.saveSettings",
+        "method": "PATCH",
+        "path": "/api/settings",
+        "body": {
+            "name": "Robby",
+            "web_search": true
+        }
+    },
+    {
+        "call": "api.setVolume",
+        "method": "PUT",
+        "path": "/api/volume",
+        "body": {
+            "volume": 40
+        }
+    },
+    {
+        "call": "api.session wake",
+        "method": "POST",
+        "path": "/api/session/wake",
+        "body": null
+    },
+    {
+        "call": "api.session sleep",
+        "method": "POST",
+        "path": "/api/session/sleep",
+        "body": null
+    },
+    {
+        "call": "api.session restart",
+        "method": "POST",
+        "path": "/api/session/restart",
+        "body": null
+    },
+    {
+        "call": "api.say",
+        "method": "POST",
+        "path": "/api/session/say",
+        "body": {
+            "text": "Bonjour"
+        }
+    },
+    {
+        "call": "api.catalog",
+        "method": "GET",
+        "path": "/api/catalog",
+        "body": null
+    },
+    {
+        "call": "api.tryMove",
+        "method": "POST",
+        "path": "/api/studio/try",
+        "body": {
+            "kind": "animation",
+            "name": "curious",
+            "mode": "listening",
+            "tuning": {
+                "amplitude": 1.2,
+                "speed": 0.8
+            },
+            "seconds": 6
+        }
+    },
+    {
+        "call": "api.playScene",
+        "method": "POST",
+        "path": "/api/scenes/s1/play",
+        "body": null
+    },
+    {
+        "call": "api.playScene with options",
+        "method": "POST",
+        "path": "/api/scenes/s1/play",
+        "body": {
+            "moves": false,
+            "rehearse": "Alice",
+            "start": 3
+        }
+    },
+    {
+        "call": "api.stopScene",
+        "method": "POST",
+        "path": "/api/scenes/stop",
+        "body": null
+    },
+    {
+        "call": "appsApi.list",
+        "method": "GET",
+        "path": "/api/apps",
+        "body": null
+    },
+    {
+        "call": "appsApi.create",
+        "method": "POST",
+        "path": "/api/apps",
+        "body": {
+            "request": "Un morpion"
+        }
+    },
+    {
+        "call": "appsApi.update",
+        "method": "POST",
+        "path": "/api/apps/a1/update",
+        "body": {
+            "request": "Plus grand"
+        }
+    },
+    {
+        "call": "appsApi.rename",
+        "method": "PATCH",
+        "path": "/api/apps/a1",
+        "body": {
+            "title": "Morpion"
+        }
+    },
+    {
+        "call": "appsApi.setQuiet",
+        "method": "POST",
+        "path": "/api/apps/a1/quiet",
+        "body": {
+            "quiet": false
+        }
+    },
+    {
+        "call": "appsApi.remove",
+        "method": "DELETE",
+        "path": "/api/apps/a1",
+        "body": null
+    },
+    {
+        "call": "appsApi.html",
+        "method": "GET",
+        "path": "/api/apps/a1/html",
+        "body": null
+    },
+    {
+        "call": "appsApi.draft",
+        "method": "GET",
+        "path": "/api/apps/a1/draft",
+        "body": null
+    },
+    {
+        "call": "appsApi.cancel",
+        "method": "POST",
+        "path": "/api/apps/a1/cancel",
+        "body": null
+    },
+    {
+        "call": "appsApi.bridge",
+        "method": "POST",
+        "path": "/api/apps/a1/bridge",
+        "body": {
+            "v": 1,
+            "motion": {
+                "kind": "look",
+                "yaw": -12,
+                "pitch": 5
+            },
+            "dashboard": "k3x9"
+        }
+    },
+    {
+        "call": "appsApi.manette",
+        "method": "POST",
+        "path": "/api/apps/a1/manette",
+        "body": {
+            "profile": "volant",
+            "grant": true
+        }
+    },
+    {
+        "call": "appsApi.manette let go",
+        "method": "POST",
+        "path": "/api/apps/a1/manette",
+        "body": {
+            "profile": null,
+            "grant": false
+        }
+    },
+    {
+        "call": "scenesApi.list",
+        "method": "GET",
+        "path": "/api/scenes",
+        "body": null
+    },
+    {
+        "call": "scenesApi.get",
+        "method": "GET",
+        "path": "/api/scenes/s1",
+        "body": null
+    },
+    {
+        "call": "scenesApi.save new",
+        "method": "POST",
+        "path": "/api/scenes",
+        "body": {
+            "title": "La visite",
+            "text": "ROBOT : Bonjour."
+        }
+    },
+    {
+        "call": "scenesApi.save",
+        "method": "PUT",
+        "path": "/api/scenes/s1",
+        "body": {
+            "title": "La visite",
+            "text": "ROBOT : Bonjour."
+        }
+    },
+    {
+        "call": "scenesApi.remove",
+        "method": "DELETE",
+        "path": "/api/scenes/s1",
+        "body": null
+    },
+    {
+        "call": "scenesApi.check",
+        "method": "POST",
+        "path": "/api/scenes/check",
+        "body": {
+            "title": "brouillon",
+            "text": "ROBOT : Bonjour."
+        }
+    },
+    {
+        "call": "scenesApi.vocabulary",
+        "method": "GET",
+        "path": "/api/scenes/vocabulary",
+        "body": null
+    },
+    {
+        "call": "scenesApi.emotions",
+        "method": "POST",
+        "path": "/api/scenes/emotions",
+        "body": {
+            "title": "Sans titre",
+            "text": "ROBOT : Bonjour."
+        }
+    },
+    {
+        "call": "scenesApi.write",
+        "method": "POST",
+        "path": "/api/scenes/write",
+        "body": {
+            "request": "Deux fentes de Young débattent"
+        }
+    },
+    {
+        "call": "scenesApi.builds",
+        "method": "GET",
+        "path": "/api/scenes/builds",
+        "body": null
+    },
+    {
+        "call": "scenesApi.cancel",
+        "method": "POST",
+        "path": "/api/scenes/builds/b1/cancel",
+        "body": null
+    },
+    {
+        "call": "studio preview",
+        "method": "GET",
+        "path": "/api/studio/preview?kind=animation&name=curious&mode=listening&amplitude=1.2&speed=0.8&seconds=6",
+        "body": null
+    }
+]

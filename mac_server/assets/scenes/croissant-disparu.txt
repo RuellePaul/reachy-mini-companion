@@ -1,0 +1,32 @@
+// Un polar de cuisine : une inspectrice, un suspect, tout dans le ton.
+@NARRATEUR (Algieba) : voix off de film noir, grave, lente, désabusée
+@L'INSPECTRICE (Gacrux) : inspectrice de polar des années cinquante, voix grave et posée, phrases courtes, soupçonneuse
+@LE GRILLE-PAIN (Sadachbia) : suspect très nerveux, parle vite, bafouille quand il ment
+
+Paris. Six heures du matin. Il pleuvait sur la cuisine comme il pleut sur les mauvaises nouvelles.
+
+[pause 1]
+
+[attentive1] Quelqu'un avait volé le dernier croissant.
+
+L'INSPECTRICE : Alors, grille-pain. On se lève tôt, ce matin ?
+
+LE GRILLE-PAIN (très vite) : [anxiety1] Moi ? Non ! Enfin si. Enfin… je suis un grille-pain, inspectrice, je ne dors jamais, vous le savez bien !
+
+L'INSPECTRICE (lentement) : [penche la tête à gauche] Tu étais seul dans la cuisine. Le croissant était là. Et maintenant… il n'est plus là.
+
+LE GRILLE-PAIN (paniqué) : [scared1] Je… je n'ai rien vu ! J'étais… j'étais débranché !
+
+L'INSPECTRICE : Débranché. Bien sûr. <tss> Et ces miettes, là, dans ta fente de gauche ?
+
+[pause 2]
+
+LE GRILLE-PAIN (qui craque, en sanglotant) : [sad2] D'accord ! D'accord ! <sanglot> Je l'ai juste réchauffé ! Un tout petit peu ! Et puis il sentait si bon…
+
+L'INSPECTRICE : [reprimand1] Un croissant, grille-pain. Un croissant au beurre. Tu sais ce que ça vaut, un croissant au beurre, à six heures du matin ?
+
+[baisse les yeux] Le grille-pain ne répondit pas. Dehors, la pluie s'était arrêtée. Quelque part, une boulangerie ouvrait.
+
+L'INSPECTRICE (soudain radoucie) : <soupir> Allez. File. [understanding1] Et la prochaine fois… garde-m'en la moitié.
+
+Affaire classée.

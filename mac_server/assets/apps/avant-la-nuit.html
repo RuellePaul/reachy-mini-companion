@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="reachy-quiet" content="oui">
+<title>Avant la nuit</title>
+<style>
+:root {
+  /* « Porcelaine et graphite » : les couleurs du tableau de bord viennent de la boîte à outils (--page, --encre, --parle…). */
+  --porcelaine: #EBEDF0; --graphite: #16181B;
+  --accent: var(--parle);
+  --verre: rgba(14, 16, 19, 0.58);
+  --police: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --nuit: #0B0A10;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--nuit); color: var(--encre); font-family: var(--police); -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+button:focus-visible { outline: 2px solid var(--encre); outline-offset: 3px; }
+kbd { font: 600 11px/18px ui-monospace, "SF Mono", Menlo, monospace; display: inline-block; min-width: 20px; padding: 0 5px; text-align: center; border-radius: 5px; color: var(--encre-2); background: var(--creux); border: 1px solid var(--trait); }
+
+#scene { position: fixed; inset: 0; overflow: hidden; }
+#toile { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* Le bandeau du haut : les chiffres du vol. */
+.hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: clamp(8px, 2.2vmin, 18px); pointer-events: none; transition: opacity 0.4s ease; }
+.groupe { display: flex; gap: clamp(4px, 1vmin, 8px); }
+.jauge { display: flex; flex-direction: column; gap: 1px; min-width: clamp(64px, 13vmin, 104px); padding: 7px 12px 8px; border-radius: 14px; background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.jauge small { font-size: 11px; font-weight: 600; color: var(--encre-3); }
+.jauge b { font-size: clamp(19px, 4.2vmin, 32px); font-weight: 760; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jauge b i { font-style: normal; font-size: 0.5em; font-weight: 620; color: var(--encre-3); letter-spacing: 0; }
+.jauge.droite { align-items: flex-end; }
+.jauge.compte b { color: var(--accent); }
+.jauge.presse b { color: var(--faute); }
+#scene:not([data-mode="jeu"]):not([data-mode="pause"]):not([data-mode="decompte"]) :is(.hud, #volant, #turbo, .manettes) { opacity: 0; pointer-events: none; }
+#scene:not([data-mode="jeu"]):not([data-mode="pause"]) #btn-pause { display: none; }
+
+
+
+/* En bas : l'état du robot et de la manette, puis les boutons de jeu. */
+.pied { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; padding: clamp(8px, 2.2vmin, 18px); pointer-events: none; z-index: 2; }
+.etats { display: flex; flex-direction: column; gap: 4px; }
+.pastille { display: inline-flex; align-items: center; gap: 7px; width: fit-content; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 560; color: var(--encre-2); background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.pastille::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--point, var(--encre-3)); }
+.pastille[data-etat="oui"] { --point: var(--ecoute); color: var(--encre); }
+.pastille[data-etat="attente"] { --point: var(--attention); }
+.pastille[data-etat="dort"] { --point: var(--sommeil); }
+.touches { display: flex; gap: 8px; pointer-events: auto; }
+.manettes { display: flex; gap: 8px; transition: opacity 0.4s ease; }
+.touche { min-width: 44px; height: 44px; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 620; color: var(--encre-2); background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.touche:hover { color: var(--encre); border-color: var(--trait-fort); }
+.touche:active, .touche.tenue { transform: scale(0.96); color: var(--graphite); background: var(--accent); }
+
+/* Les écrans : accueil, mise en place de Reachy, pause, fin. La ville défile derrière. */
+.ecran { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 2.4vmin, 20px); padding: 20px 20px clamp(20px, 9vmin, 76px); text-align: center; background: radial-gradient(ellipse at 50% 46%, rgba(5, 7, 11, 0.74) 0%, rgba(5, 7, 11, 0.42) 48%, rgba(5, 7, 11, 0.08) 100%); animation: apparait 0.35s ease both; }
+#pause { backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); }
+@keyframes apparait { from { opacity: 0; } }
+.ecran h1 { font-size: clamp(38px, 10.5vmin, 92px); font-weight: 800; line-height: 0.95; letter-spacing: -0.035em; text-shadow: 0 4px 40px rgba(5, 7, 11, 0.95); }
+.ecran h1 em { font-style: normal; color: var(--accent); }
+.ecran h2 { font-size: clamp(26px, 6vmin, 44px); font-weight: 760; letter-spacing: -0.02em; text-shadow: 0 2px 24px rgba(5, 7, 11, 0.95); }
+.ecran p { max-width: 32em; font-size: clamp(14px, 2.4vmin, 17px); line-height: 1.5; color: #C9CED6; text-shadow: 0 1px 12px rgba(5, 7, 11, 0.98); }
+.ecran p b { color: var(--encre); font-weight: 640; }
+.ecran p.petit { font-size: 13px; color: var(--encre-3); }
+.gros { font-size: clamp(56px, 16vmin, 128px); font-weight: 800; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--accent); text-shadow: 0 4px 50px rgba(255, 202, 59, 0.3); }
+.gros small { font-size: 0.22em; font-weight: 700; letter-spacing: 0; color: var(--encre-2); margin-left: 0.4em; }
+.bouton { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 30px; border-radius: 999px; font-size: 18px; font-weight: 700; color: var(--graphite); background: var(--porcelaine); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8); transition: transform 0.12s ease, background 0.12s ease; }
+.bouton:hover { background: #FFFFFF; transform: translateY(-1px); }
+.bouton:active { transform: scale(0.97); }
+.bouton:disabled { opacity: 0.4; cursor: default; transform: none; }
+.bouton.discret { min-height: 40px; padding: 0 18px; font-size: 14px; font-weight: 620; color: var(--encre-2); background: rgba(14, 16, 19, 0.5); border: 1px solid var(--trait-fort); box-shadow: none; }
+.bouton.discret:hover { color: var(--encre); background: rgba(235, 237, 240, 0.08); }
+.aides { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; max-width: 42em; font-size: 12px; color: var(--encre-3); text-shadow: 0 1px 8px rgba(5, 7, 11, 0.98); }
+.aides span { display: inline-flex; align-items: center; gap: 5px; }
+#annonce { position: absolute; left: 50%; bottom: clamp(74px, 15vmin, 120px); transform: translateX(-50%); max-width: calc(100% - 24px); padding: 8px 16px; border-radius: 999px; font-size: 15px; font-weight: 660; text-align: center; background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); pointer-events: none; opacity: 0; transition: opacity 0.25s ease; z-index: 3; }
+#annonce.vu { opacity: 1; }
+#eclat { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(242, 107, 94, 0.5) 100%); }
+#eclat.vu { animation: eclat 0.5s ease-out; }
+@keyframes eclat { from { opacity: 1; } to { opacity: 0; } }
+
+/* Reachy, dessiné : il montre comment on tient sa tête. Elle se lève, puis tourne. */
+.reachy { width: clamp(72px, 17vmin, 132px); height: auto; overflow: visible; margin-top: 8px; }
+.reachy .coque { fill: var(--porcelaine); }
+.reachy .ombre { fill: #C9CED6; }
+.reachy .oeil { fill: var(--graphite); }
+.reachy .reflet { fill: #5B6370; }
+.reachy .antenne { stroke: var(--encre-2); stroke-width: 3; stroke-linecap: round; fill: none; }
+.reachy .bout { fill: var(--encre-2); }
+.reachy .geste { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.reachy .r-tete { transform-origin: 60px 64px; animation: manche 5s ease-in-out infinite; }
+.reachy .monter { animation: montre-monter 5s ease-in-out infinite; }
+.reachy .virer { animation: montre-virer 5s ease-in-out infinite; }
+@keyframes manche { 0%, 8%, 92%, 100% { transform: translateY(5px) rotate(0deg); } 24%, 34% { transform: translateY(-8px) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-11deg); } 70% { transform: translateY(-8px) rotate(11deg); } 82% { transform: translateY(-8px) rotate(0deg); } }
+@keyframes montre-monter { 0%, 6%, 40%, 100% { opacity: 0.25; } 16%, 30% { opacity: 1; } }
+@keyframes montre-virer { 0%, 40%, 88%, 100% { opacity: 0.25; } 50%, 76% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+@media (max-height: 600px) { .ecran .aides, .ecran .reachy { display: none; } .ecran { padding-bottom: 20px; } }
+@media (max-width: 520px) { .jauge { min-width: 0; padding: 6px 9px 7px; } .jauge small { font-size: 10px; } #volant { display: none; } }
+
+/* Le volant : où la paume, les flèches ou le doigt le tiennent. */
+#volant { position: absolute; left: clamp(10px, 2.2vmin, 18px); bottom: clamp(74px, 14vmin, 108px); width: 62px; height: 62px; border-radius: 50%; background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); pointer-events: none; transition: opacity 0.4s ease; }
+#volant i { position: absolute; inset: 9px; border-radius: 50%; border: 3px solid var(--encre-2); }
+#volant i::before { content: ""; position: absolute; left: 50%; top: -4px; width: 6px; height: 12px; margin-left: -3px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 10px rgba(255, 202, 59, 0.6); }
+#volant i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 50%; height: 3px; margin-top: -1px; border-radius: 2px; background: var(--encre-2); }
+/* La jauge du turbo : elle se remplit en glissant et en doublant. */
+#turbo { position: absolute; left: 50%; bottom: clamp(20px, 4.4vmin, 34px); transform: translateX(-50%); width: min(38vw, 300px); height: 12px; border-radius: 999px; background: var(--verre); border: 1px solid var(--trait); overflow: hidden; pointer-events: none; transition: opacity 0.4s ease; }
+#turbo b { position: absolute; inset: 0; transform-origin: left center; border-radius: 999px; background: linear-gradient(90deg, #5B9BFF, #B8D4FF); }
+#turbo.actif b { background: linear-gradient(90deg, #FFCA3B, #FFF1B8); }
+#turbo small { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); font-size: 11px; font-weight: 640; color: var(--encre-2); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9); white-space: nowrap; }
+#turbo { overflow: visible; }
+#turbo b { clip-path: inset(0 round 999px); }
+#decompte { position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: 26vh; font-size: clamp(80px, 22vmin, 200px); font-weight: 800; letter-spacing: -0.05em; color: var(--porcelaine); pointer-events: none; text-shadow: 0 10px 60px rgba(0, 0, 0, 0.7); }
+#scene:not([data-mode="decompte"]) #decompte { display: none; }
+#decompte span { animation: bat 1s ease both; }
+@keyframes bat { from { opacity: 0; transform: scale(1.5); } 25% { opacity: 0.94; transform: scale(1); } 80% { opacity: 0.94; } to { opacity: 0; transform: scale(0.85); } }
+.gros small[data-medaille="or"] { color: #FFCA3B; }
+.gros small[data-medaille="argent"] { color: #D5DAE2; }
+.gros small[data-medaille="bronze"] { color: #D69A66; }
+/* Reachy, dessiné : ses antennes baissées, une main qui le tourne. */
+.reachy .r-tout { transform-origin: 60px 70px; animation: tourne 4.4s ease-in-out infinite; }
+@keyframes tourne { 0%, 12%, 88%, 100% { transform: rotate(0deg); } 34% { transform: rotate(-14deg); } 66% { transform: rotate(14deg); } }
+.reachy .appui { animation: appuie 4.4s ease-in-out infinite; }
+@keyframes appuie { 0%, 40%, 60%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+</style>
+</head>
+<body>
+<main id="scene" data-mode="accueil">
+  <canvas id="toile"></canvas>
+
+  <header class="hud">
+    <div class="groupe">
+      <div class="jauge"><small>Vitesse</small><b><span id="vitesse">0</span><i>&#8239;km/h</i></b></div>
+    </div>
+    <div class="groupe">
+      <div class="jauge droite"><small>Port</small><b><span id="port">7,3</span><i>&#8239;km</i></b></div>
+      <div class="jauge droite compte" id="jauge-ferry"><small>Le ferry part dans</small><b id="ferry">3:35</b></div>
+    </div>
+  </header>
+  <div id="volant" aria-hidden="true"><i id="volant-point"></i></div>
+  <div id="turbo" aria-hidden="true"><small>Turbo</small><b id="turbo-niveau"></b></div>
+  <div id="decompte"></div>
+  <div id="eclat"></div>
+  <div id="annonce"></div>
+
+  <footer class="pied">
+    <div class="etats">
+      <span class="pastille" id="etat-robot">Robot&nbsp;: en attente</span>
+      <span class="pastille" id="etat-manette">Manette&nbsp;: non</span>
+    </div>
+    <nav class="touches">
+      <span class="manettes">
+        <button class="touche" id="btn-frein" aria-label="Freiner">Frein</button>
+        <button class="touche" id="btn-turbo" aria-label="Turbo">Turbo</button>
+      </span>
+      <button class="touche" id="btn-son" aria-label="Couper le son">Son</button>
+      <button class="touche" id="btn-pause" aria-label="Pause">Pause</button>
+    </nav>
+  </footer>
+
+  <section class="ecran" id="accueil">
+    <svg class="reachy" viewBox="0 0 120 120" aria-hidden="true">
+      <path class="geste virer" d="M30 2 Q60 -12 90 2 M38 -8 L30 2 L41 5 M82 -8 L90 2 L79 5"/>
+      <g class="r-tout">
+        <rect class="ombre" x="36" y="64" width="48" height="46" rx="19"/><rect class="coque" x="36" y="62" width="48" height="44" rx="19"/>
+        <path class="antenne" d="M18 40 L10 62"/><circle class="bout" cx="10" cy="62" r="3.5"/>
+        <path class="antenne" d="M102 40 L110 62"/><circle class="bout" cx="110" cy="62" r="3.5"/>
+        <circle class="geste appui" cx="10" cy="62" r="8"/><circle class="geste appui" cx="110" cy="62" r="8"/>
+        <rect class="ombre" x="16" y="30" width="88" height="40" rx="20"/><rect class="coque" x="16" y="27" width="88" height="40" rx="20"/>
+        <rect class="oeil" x="44" y="44" width="32" height="5" rx="2.5"/><circle class="oeil" cx="43" cy="47" r="11"/><circle class="oeil" cx="77" cy="47" r="11"/><circle class="reflet" cx="39.5" cy="43.5" r="3"/><circle class="reflet" cx="73.5" cy="43.5" r="3"/>
+      </g>
+    </svg>
+    <h1>Avant la <em>nuit</em></h1>
+    <p>Reachy est ton volant. <b>Pose ta paume sur sa tête</b> et tourne&#8209;le pour braquer&nbsp;; tes doigts reposent sur ses antennes baissées&nbsp;: celle de gauche freine, celle de droite lance le turbo. Rejoins le port avant que le soleil ne se couche&nbsp;: le ferry lève l’ancre à la nuit.</p>
+    <button class="bouton" id="jouer">Jouer</button>
+    <p class="petit" id="sans-3d" hidden>Ce navigateur n’affiche pas la 3D (WebGL&nbsp;2)&nbsp;: la route ne peut pas se dessiner ici.</p>
+    <div class="aides"><span><kbd>Entrée</kbd> jouer</span><span><kbd>←</kbd><kbd>→</kbd> braquer</span><span><kbd>↓</kbd> ou <kbd>Maj</kbd> frein</span><span><kbd>↑</kbd> ou <kbd>Espace</kbd> turbo</span><span>freiner en braquant&nbsp;: elle glisse, et le turbo se recharge</span><span><kbd>P</kbd> pause</span><span><kbd>R</kbd> recommencer</span><span><kbd>M</kbd> son</span></div>
+  </section>
+
+  <section class="ecran" id="place" hidden>
+    <h2 id="place-titre">Reachy se met en place…</h2>
+    <p>Il baisse ses antennes et relâche sa base. <b>Pose ta paume sur sa tête</b>, deux doigts sur ses antennes&nbsp;: tourne&#8209;le comme un volant, appuie à gauche pour freiner, à droite pour le turbo.</p>
+    <button class="bouton discret" id="sans-robot">Jouer sans Reachy</button>
+  </section>
+
+  <section class="ecran" id="pause" hidden>
+    <h2>Pause</h2>
+    <button class="bouton" id="reprendre">Reprendre</button>
+    <button class="bouton discret" id="recommencer">Recommencer</button>
+  </section>
+
+  <section class="ecran" id="fin" hidden>
+    <h2 id="fin-titre">Arrivée au crépuscule</h2>
+    <div class="gros"><span id="fin-temps">3&nbsp;min&nbsp;02</span><small id="fin-unite"></small></div>
+    <p id="fin-detail"></p>
+    <p class="petit" id="fin-record"></p>
+    <button class="bouton" id="rejouer">Rejouer</button>
+  </section>
+</main>
+
+<script>
+'use strict';
+// ===== Réglages =====
+const PROFIL = 'paume';             // la manette demandée : la paume tourne la base de Reachy, deux doigts sur ses antennes baissées
+const TENUE = 'la paume au volant';  // ce que dit la pastille quand la manette marche
+const PAS = 1 / 120;                // pas fixe de la logique, en secondes
+const DPR_MAX = 2;
+const PIXELS_MAX = 2.6e6;           // la scène 3D ne se calcule jamais sur plus de pixels que cela
+
+// La route, en mètres. Le cap 0 mène vers les z négatifs et croît vers la droite ; la mer est à droite, vers les x positifs.
+const DS = 6;                       // d'une nervure du parcours à la suivante
+const DEMI_ROUTE = 4.5;             // de l'axe au bord de la chaussée
+const VOIE = 2.15;                  // de l'axe au milieu d'une voie : on roule à droite
+const GLISSIERE = 5.3;              // de l'axe à la glissière, côté mer
+const PAROI = 5.7;                  // de l'axe au rocher, côté montagne
+const DEPART = 30, AVANT_ARRIVEE = 150;   // la ligne de départ ; l'arrivée, avant le bout de la jetée
+
+// La voiture
+const V_CROISIERE = 46, V_NITRO = 66;      // m/s : elle accélère d'elle-même
+const FREINAGE = 26;                // m/s² à fond
+const ADHERENCE = 13;               // m/s² en travers : au-delà, elle glisse
+const BRAQUAGE = 16;                // m/s² en travers que demande le volant à fond
+const NITRO_DEBIT = 0.26, NITRO_GLISSE = 0.2, NITRO_DOUBLE = 0.14, NITRO_REPOS = 0.018;   // la jauge, de 0 à 1 : par seconde, par dépassement
+const LARGEUR_AUTO = 1.9, LONGUEUR_AUTO = 4.4;
+
+// Reachy sous la paume : sa base tournée de tant de degrés, c'est le volant à fond ; ses antennes baissées sont deux
+// palettes sous les doigts : à gauche de l'écran le frein (plus on appuie, plus il freine), à droite le turbo.
+const VOLANT_PLEIN = 18;
+// Le sens est celui de la main, pas celui du visage de Reachy : tournée vers la gauche (le sens inverse des aiguilles
+// d'une montre, vue de dessus), elle amène son visage vers la droite de l'écran, ce que le pad compte positif.
+const SENS_VOLANT = -1;
+const MORT = 0.06;                  // le jeu du volant autour du centre
+const FREIN_DEBUT = 3, FREIN_PLEIN = 14;   // degrés d'antenne
+
+// Le soir : la course se joue contre le soleil. Il touche la mer quand l'or s'en va ; le ferry part à la nuit tombante.
+const TEMPS_OR = 172, TEMPS_ARGENT = 190, TEMPS_FERRY = 215;      // secondes
+const SOLEIL = [[0, 11], [TEMPS_OR, 0.4], [TEMPS_ARGENT, -2.4], [TEMPS_FERRY, -6], [TEMPS_FERRY + 30, -12]];   // sa hauteur (degrés) au fil de la course
+const MEDAILLES = [
+  { sous: TEMPS_OR, titre: 'Arrivée avant le coucher du soleil', nom: 'or', emotion: 'success1' },
+  { sous: TEMPS_ARGENT, titre: 'Arrivée au crépuscule', nom: 'argent', emotion: 'proud1' },
+  { sous: TEMPS_FERRY, titre: 'À bord à la nuit tombante', nom: 'bronze', emotion: 'cheerful1' },
+];
+const GAMME = [0, 2, 4, 7, 9], TONIQUE = 220;
+const TAU = Math.PI * 2, RAD = Math.PI / 180;
+
+// ===== La boîte à outils (window.reachy) : le canal vers le robot, la manette, le son, la toile, la boucle =====
+const $ = (id) => document.getElementById(id);
+const { borne, mele, lisse, hasard } = reachy;
+const { note } = reachy.son;
+const nombre = (n) => Math.round(n).toLocaleString('fr-FR');
+const duree = (s) => Math.floor(s / 60) + ' min ' + String(Math.floor(s % 60)).padStart(2, '0');
+
+function hacher(a, b, c) {
+  let h = Math.imul(a | 0, 0x9E3779B1) ^ Math.imul(b | 0, 0x85EBCA6B) ^ Math.imul(c | 0, 0xC2B2AE35);
+  h = Math.imul(h ^ (h >>> 16), 0x7FEB352D);
+  h = Math.imul(h ^ (h >>> 15), 0x846CA68B);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+/** Un bruit doux, de 0 à 1, sur une grille d'un pas de 1. */
+function bruit(x, z, sel) {
+  const ix = Math.floor(x), iz = Math.floor(z), fx = lisse(x - ix), fz = lisse(z - iz);
+  const v = (i, j) => hacher(ix + i, iz + j, sel) / 4294967296;
+  return mele(mele(v(0, 0), v(1, 0), fx), mele(v(0, 1), v(1, 1), fx), fz);
+}
+
+// ===== Le parcours : une corniche, de la falaise au port. Toujours le même : on l'apprend. =====
+// Chaque tronçon : sa longueur (m), de combien il tourne (degrés, positif à droite), l'altitude où il finit, son paysage.
+const PAYSAGES = ['falaise', 'foret', 'village', 'pont', 'tunnel', 'port'];
+const TRONCONS = [
+  [280, 0, 38, 'falaise'], [230, 36, 40, 'falaise'], [210, -60, 44, 'falaise'], [150, 0, 44, 'falaise'], [250, 50, 54, 'falaise'],
+  [190, -42, 56, 'falaise'], [310, -16, 60, 'tunnel'], [190, 44, 60, 'falaise'], [290, 10, 60, 'pont'], [210, -50, 70, 'falaise'],
+  [230, 48, 76, 'falaise'], [200, -44, 80, 'falaise'], [270, 54, 86, 'foret'], [190, -58, 90, 'foret'], [190, 52, 94, 'foret'],
+  [250, -44, 100, 'foret'], [230, 40, 96, 'foret'], [200, -34, 88, 'foret'], [240, 0, 80, 'village'], [210, 30, 76, 'village'],
+  [230, -40, 68, 'village'], [250, 52, 56, 'foret'], [270, -60, 44, 'falaise'], [210, 52, 36, 'falaise'], [260, -44, 28, 'falaise'],
+  [220, 46, 22, 'falaise'], [220, 0, 20, 'pont'], [250, -50, 14, 'falaise'], [270, 54, 8, 'falaise'], [300, -16, 3.2, 'port'],
+  [460, 0, 3.2, 'port'],
+];
+
+/** Le parcours, nervure par nervure : sa place (x, y, z), son cap, sa courbure (1/m, positive à droite), sa pente, et
+ *  la part de chaque paysage (`poids`, six nombres par nervure : ils se fondent d'un tronçon au suivant). */
+function tracer() {
+  const brut = { k: [], y: [], paysage: [] };
+  let altitude = 34;
+  for (const [longueur, virage, fin, paysage] of TRONCONS) {
+    const n = Math.round(longueur / DS), debut = altitude;
+    for (let i = 0; i < n; i++) { brut.k.push(virage * RAD / (n * DS)); brut.y.push(mele(debut, fin, lisse((i + 1) / n))); brut.paysage.push(PAYSAGES.indexOf(paysage)); }
+    altitude = fin;
+  }
+  const n = brut.k.length, moyenne = (liste, i, rayon) => { let s = 0, c = 0; for (let j = i - rayon; j <= i + rayon; j++) { s += liste[borne(j, 0, n - 1)]; c += 1; } return s / c; };
+  const p = { n, longueur: (n - 1) * DS, x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n), cap: new Float32Array(n), k: new Float32Array(n),
+    pente: new Float32Array(n), poids: new Float32Array(n * 6), paysage: brut.paysage };
+  let x = 0, z = 0, cap = 0;
+  for (let i = 0; i < n; i++) {
+    p.k[i] = moyenne(brut.k, i, 5); p.y[i] = moyenne(brut.y, i, 6);
+    cap += p.k[i] * DS;
+    p.cap[i] = cap; p.x[i] = x; p.z[i] = z;
+    x += Math.sin(cap) * DS; z -= Math.cos(cap) * DS;
+    for (let j = i - 6; j <= i + 6; j++) p.poids[i * 6 + brut.paysage[borne(j, 0, n - 1)]] += 1 / 13;
+  }
+  for (let i = 0; i < n; i++) p.pente[i] = (p.y[Math.min(i + 1, n - 1)] - p.y[Math.max(i - 1, 0)]) / (DS * (i > 0 && i < n - 1 ? 2 : 1));
+  p.arrivee = p.longueur - AVANT_ARRIVEE;
+  return p;
+}
+const PARCOURS = tracer();
+
+/** Le parcours à l'abscisse `s` (m) : place de l'axe, cap, courbure, pente, et le vecteur qui pointe à droite. */
+function ou(p, s) {
+  const f = borne(s / DS, 0, p.n - 1.001), i = Math.floor(f), t = f - i, cap = mele(p.cap[i], p.cap[i + 1], t);
+  return { x: mele(p.x[i], p.x[i + 1], t), y: mele(p.y[i], p.y[i + 1], t), z: mele(p.z[i], p.z[i + 1], t), cap, k: mele(p.k[i], p.k[i + 1], t),
+    pente: mele(p.pente[i], p.pente[i + 1], t), dx: Math.cos(cap), dz: Math.sin(cap), i };
+}
+/** La part d'un paysage à l'abscisse `s`, de 0 à 1. */
+function part(p, s, paysage) { return p.poids[borne(Math.round(s / DS), 0, p.n - 1) * 6 + PAYSAGES.indexOf(paysage)]; }
+
+/** La hauteur du sol à côté de la route : nervure `i`, à `u` mètres de l'axe (négatif : côté montagne). Chaque paysage a
+ *  son profil des deux côtés ; d'un tronçon au suivant ils se fondent. Jamais plus bas que le fond de la mer. */
+function sol(p, i, u) {
+  const y0 = p.y[i], d = Math.abs(u) - DEMI_ROUTE, mont = u < 0;
+  if (d <= 0) return y0;
+  const x = p.x[i] + Math.cos(p.cap[i]) * u, z = p.z[i] + Math.sin(p.cap[i]) * u;
+  const n1 = bruit(x * 0.011, z * 0.011, 3), n2 = bruit(x * 0.05, z * 0.05, 5), n3 = bruit(x * 0.17, z * 0.17, 7);
+  const fosse = -0.35 * lisse(d / 1.5) * (1 - lisse((d - 1.5) / 2)), mur = Math.max(0, d - 1.4);
+  const falaise = mur < 30 ? 1.45 * Math.pow(mur, 1.07) : 1.45 * Math.pow(30, 1.07) + 0.42 * (mur - 30);
+  const profils = mont ? [
+    fosse + falaise * (0.7 + 0.6 * n1) + 3.5 * n2 * lisse(d / 12),                                      // falaise
+    fosse + 0.24 * d * (0.5 + n1) + 7 * n2 * lisse(d / 20) + 1.2 * n3,                                  // forêt
+    0.2 + 0.09 * d + 1.5 * Math.floor(d / 16) * lisse(d / 16),                                          // village, en terrasses
+    -Math.min(y0 + 4, 3 * d),                                                                           // pont : l'anse dessous
+    falaise * 1.25 * (0.8 + 0.4 * n1) + 2 * n2,                                                         // tunnel : le rocher des deux côtés
+    0.15 + 0.1 * Math.max(0, d - 28),                                                                   // port : le quai
+  ] : [
+    -1.5 * Math.pow(Math.max(0, d - 1.8), 1.06) * (0.75 + 0.5 * n1) + 0.6 * n3 * lisse(d / 6),
+    -0.3 * d * (0.6 + 0.8 * n1) - 0.012 * d * d + 4 * n2 * lisse(d / 20),
+    -0.14 * d - 1.5 * Math.floor(d / 16) * lisse(d / 16) - 0.004 * d * d,
+    -Math.min(y0 + 4, 3 * d),
+    falaise * 1.25 * (0.8 + 0.4 * n1) + 2 * n2,
+    d < 13 ? 0 : -4.6 * lisse((d - 13) / 1.2),                                                         // le quai, puis l'eau
+  ];
+  let h = 0;
+  for (let k = 0; k < 6; k++) h += p.poids[i * 6 + k] * profils[k];
+  return Math.max(-5, y0 + h);
+}
+
+// ===== La voiture : elle accélère d'elle-même ; on la tient par le volant, le frein et le turbo =====
+function nouvelleVoiture(p, s) {
+  const r = ou(p, s);
+  return { s, u: VOIE, v: 0, lacet: r.cap, route: r.cap, nitro: 0.4, frein: 0, glisse: 0, turbo: 0, frotte: 0, hors: 0 };
+}
+/** Le jeu du volant autour du centre, puis une course douce : fine au milieu, franche au bout. */
+function course(v) {
+  const a = Math.abs(v);
+  return a <= MORT ? 0 : Math.sign(v) * Math.pow((a - MORT) / (1 - MORT), 1.25);
+}
+/** Ce que la paume et les doigts demandent : la main qui tourne Reachy vers la gauche braque à gauche (`SENS_VOLANT`) ;
+ *  l'antenne à gauche de l'écran freine d'autant qu'on l'appuie, celle de droite lance le turbo. */
+function commandesDepuisReachy(corps, antenneGauche, antenneDroite, gauche, droite) {
+  return {
+    x: course(borne(SENS_VOLANT * corps / VOLANT_PLEIN, -1, 1)),
+    frein: Math.max(gauche ? 0.4 : 0, borne((Math.abs(antenneGauche) - FREIN_DEBUT) / (FREIN_PLEIN - FREIN_DEBUT), 0, 1)),
+    nitro: !!droite,
+  };
+}
+/** Un pas de conduite. `cmd` : x de -1 (à gauche) à 1, frein de 0 à 1, nitro. La voiture braque moins à grande vitesse ;
+ *  au-delà de son adhérence, ou freinée en braquant, l'arrière chasse : elle glisse, perd un peu de vitesse et recharge
+ *  son turbo. Hors de la chaussée elle ralentit ; la glissière et le rocher la renvoient. */
+function rouler(p, c, cmd, dt) {
+  const r = ou(p, c.s), lacetVoulu = cmd.x * BRAQUAGE / Math.max(c.v, 12), travers = Math.abs(c.v * lacetVoulu);
+  const glisse = c.v > 20 && (travers > ADHERENCE || (cmd.frein > 0.3 && Math.abs(cmd.x) > 0.3));
+  c.glisse += ((glisse ? 1 : 0) - c.glisse) * (1 - Math.exp(-dt * (glisse ? 7 : 3)));
+  c.lacet += lacetVoulu * (1 + 0.5 * c.glisse) * dt;
+  c.lacet += (c.route - c.lacet) * (1 - Math.abs(cmd.x)) * (1 - Math.exp(-dt * 2.2));          // lâchée, elle se remet dans son sillage
+  c.route += (c.lacet - c.route) * (1 - Math.exp(-dt * mele(9, 2.4, c.glisse)));
+  const derive = borne(c.lacet - c.route, -0.7, 0.7);
+  c.lacet = c.route + derive;
+  // la vitesse
+  const turbo = cmd.nitro && c.nitro > 0 && cmd.frein < 0.1, voulue = turbo ? V_NITRO : V_CROISIERE;
+  c.turbo += ((turbo ? 1 : 0) - c.turbo) * (1 - Math.exp(-dt * 5));
+  c.v += (voulue - c.v) * (voulue > c.v ? (turbo ? 0.85 : 0.42) * (1 - Math.min(1, cmd.frein * 3)) : 0.5) * dt;      // le pied sur le frein, elle n'accélère plus
+  c.v -= (cmd.frein * FREINAGE + Math.abs(Math.sin(derive)) * c.v * 0.3 + 9.81 * r.pente * 0.6) * dt;
+  c.frein = cmd.frein;
+  c.nitro = borne(c.nitro + (turbo ? -NITRO_DEBIT : NITRO_REPOS + NITRO_GLISSE * c.glisse) * dt, 0, 1);
+  // la place sur la route
+  const ecart = c.route - r.cap;
+  c.s += c.v * Math.cos(ecart) / Math.max(0.4, 1 - r.k * c.u) * dt;
+  c.u += c.v * Math.sin(ecart) * dt;
+  // les bords : le bas-côté freine, la glissière et le rocher renvoient vers la route
+  const falaise = part(p, c.s, 'falaise'), ouvert = part(p, c.s, 'village') + part(p, c.s, 'port') + part(p, c.s, 'foret') * 0.6;
+  const aDroite = mele(GLISSIERE, 9, borne(part(p, c.s, 'village') + part(p, c.s, 'port'), 0, 1)) - LARGEUR_AUTO / 2;
+  const aGauche = -mele(PAROI, 9, borne(ouvert, 0, 1)) + LARGEUR_AUTO / 2;
+  c.hors = Math.abs(c.u) > DEMI_ROUTE - 0.4 ? 1 : 0;
+  if (c.hors && c.v > 16) c.v -= (c.v - 16) * 1.3 * dt;
+  c.frotte = 0;
+  if (c.u > aDroite || c.u < aGauche) {
+    c.u = borne(c.u, aGauche, aDroite);
+    c.frotte = 1;
+    c.v -= c.v * 0.9 * dt;
+    c.route += (r.cap - c.route) * (1 - Math.exp(-dt * 10)); c.lacet += (r.cap - c.lacet) * (1 - Math.exp(-dt * 6));
+  }
+  c.v = borne(c.v, 0, 80);
+  return falaise;
+}
+/** Où est la voiture dans le monde : sa place et son cap. */
+function placer(p, c) {
+  const r = ou(p, c.s);
+  return { x: r.x + r.dx * c.u, y: r.y, z: r.z + r.dz * c.u, cap: c.lacet, route: c.route, pente: r.pente };
+}
+
+// ===== La circulation : des voitures qui tiennent leur voie, dans les deux sens. Toujours les mêmes. =====
+function circulation(p) {
+  const alea = hasard(20261112), autos = [];
+  for (let s = 260; s < p.longueur - 520; s += 190 + 170 * alea()) autos.push({ s0: s, v: 21 + 6 * alea(), u: VOIE, teinte: alea(), double: false });
+  for (let s = 520; s < p.longueur + TEMPS_FERRY * 30; s += 420 + 420 * alea()) autos.push({ s0: s, v: -(23 + 7 * alea()), u: -VOIE, teinte: alea(), double: false });
+  return autos;
+}
+/** Où en est une voiture de la circulation après `t` secondes : son abscisse, ou null si elle n'est pas sur la route. */
+function abscisse(p, auto, t) {
+  const s = auto.s0 + auto.v * t;
+  return s > 40 && s < p.longueur - 430 ? s : null;
+}
+
+// ===== La partie : contre le soleil, jusqu'au ferry =====
+function nouvellePartie(p) {
+  return { p, auto: nouvelleVoiture(p, DEPART), trafic: circulation(p), temps: 0, depasses: 0, chocs: 0, frottements: 0, vMax: 0, glissades: 0,
+    arrivee: false, perdue: false, evenements: [] };
+}
+/** La hauteur du soleil (degrés) après `t` secondes de course : il se couche pendant qu'on roule. */
+function soleil(t) {
+  let i = 1;
+  while (i < SOLEIL.length - 1 && t > SOLEIL[i][0]) i += 1;
+  return mele(SOLEIL[i - 1][1], SOLEIL[i][1], borne((t - SOLEIL[i - 1][0]) / (SOLEIL[i][0] - SOLEIL[i - 1][0]), 0, 1));
+}
+function medaille(temps) {
+  const rang = MEDAILLES.findIndex((m) => temps < m.sous);
+  return rang < 0 ? null : MEDAILLES[rang];
+}
+/** Un pas de partie : la conduite, la circulation (un choc ralentit, un dépassement recharge le turbo), l'arrivée, l'heure. */
+function avancerPartie(g, cmd, dt) {
+  const c = g.auto, p = g.p, glissait = c.glisse > 0.5;
+  rouler(p, c, cmd, dt);
+  if (c.frotte) { g.frottements += dt; if (g.frottements - dt < Math.floor(g.frottements * 4) / 4) g.evenements.push({ type: 'frotte' }); }
+  if (c.glisse > 0.5 && !glissait) { g.glissades += 1; g.evenements.push({ type: 'glisse' }); }
+  for (const a of g.trafic) {
+    const s = abscisse(p, a, g.temps);
+    if (s === null) continue;
+    const ds = s - c.s, du = a.u - c.u;
+    if (Math.abs(ds) < LONGUEUR_AUTO && Math.abs(du) < LARGEUR_AUTO) {                                // un choc
+      const face = a.v < 0;
+      c.v = face ? Math.min(c.v, 6) : Math.min(c.v, Math.max(8, a.v - 3));
+      c.u += (du > 0 ? -1 : 1) * (LARGEUR_AUTO - Math.abs(du) + 0.1);
+      if (!a.touche) { g.chocs += 1; g.evenements.push({ type: 'choc', face }); }
+      a.touche = true;
+    } else if (Math.abs(ds) > 12) a.touche = false;
+    if (ds > 0) a.vue = true;
+    if (a.v > 0 && a.vue && !a.double && ds < -LONGUEUR_AUTO) {                                       // doublée
+      a.double = true; g.depasses += 1;
+      c.nitro = Math.min(1, c.nitro + NITRO_DOUBLE);
+      g.evenements.push({ type: 'double', pres: Math.abs(du) < 3.2 });
+    }
+  }
+  g.temps += dt; g.vMax = Math.max(g.vMax, c.v);
+  if (!g.arrivee && c.s >= p.arrivee) { g.arrivee = true; g.evenements.push({ type: 'arrivee' }); }
+  else if (!g.arrivee && !g.perdue && g.temps >= TEMPS_FERRY) { g.perdue = true; g.evenements.push({ type: 'parti' }); }
+}
+
+/** Le pilote automatique : il tient sa voie, freine avant les virages que sa vitesse ne passerait pas, se cale derrière
+ *  une voiture plus lente et la double quand la voie d'en face est libre assez longtemps. `hardi` : il se sert du turbo. */
+function piloter(g, hardi) {
+  const c = g.auto, p = g.p;
+  let serre = 0;
+  for (let d = 0; d <= 130; d += 10) serre = Math.max(serre, Math.abs(ou(p, c.s + d).k) * (1 - d / 300));
+  const passe = Math.sqrt(ADHERENCE * 0.82 / Math.max(serre, 1e-4));
+  let gene = Infinity, lente = 0, face = Infinity, flanc = false;
+  for (const a of g.trafic) {
+    const s = abscisse(p, a, g.temps);
+    if (s === null) continue;
+    const ds = s - c.s;
+    if (a.v > 0 && ds > -7 && ds < 70 && ds < gene) { gene = ds; lente = a.v; }
+    if (a.v > 0 && ds > -7 && ds < 6) flanc = true;                                                   // elle est encore à côté
+    if (a.v < 0 && ds > -8) face = Math.min(face, ds / (c.v - a.v));                                  // secondes avant de la croiser
+  }
+  const gain = Math.max(c.v - lente, 4), doubler = (Math.max(gene, 0) + 14) / gain;                  // secondes pour la passer
+  const aGauche = c.u < 0.4, libre = face > doubler + (aGauche ? 0.6 : 2.6);
+  const voie = gene < 70 && (flanc || (gene < 48 && libre)) ? -VOIE : VOIE;
+  // il vise un point de sa voie, devant lui : l'arc qui y mène dit de combien braquer
+  const devant = 10 + c.v * 0.42, r = ou(p, c.s + devant), ici = ou(p, c.s);
+  const vx = r.x + r.dx * voie - (ici.x + ici.dx * c.u), vz = r.z + r.dz * voie - (ici.z + ici.dz * c.u);
+  const angle = Math.atan2(Math.sin(Math.atan2(vx, -vz) - c.route), Math.cos(Math.atan2(vx, -vz) - c.route));
+  const x = borne(2 * Math.sin(angle) / Math.hypot(vx, vz) * c.v * Math.max(c.v, 12) / BRAQUAGE, -0.78, 0.78);
+  const tropVite = Math.max(c.v - passe, voie > 0 && gene < 34 ? c.v - lente + (34 - gene) * 0.5 : -99);
+  return { x, frein: tropVite > 1 ? borne(tropVite / 9, 0.15, 1) : 0, nitro: !!hardi && serre < 0.0022 && tropVite < -14 && (gene > 70 || voie < 0) };
+}
+/** Une course entière par le pilote automatique : elle dit si le parcours se tient, et en combien de temps. */
+function simuler(hardi) {
+  const g = nouvellePartie(PARCOURS);
+  while (!g.arrivee && g.temps < 400) avancerPartie(g, piloter(g, hardi), PAS);
+  return g;
+}
+
+// ===== Le monde bâti : le relief, la chaussée, les ouvrages, les arbres, les maisons, les lumières. Bâti une fois. =====
+const TRAVERS = [-170, -128, -94, -66, -44, -29, -19, -12.5, -8.2, -5.9, -DEMI_ROUTE, DEMI_ROUTE, 5.9, 8.2, 12.5, 19, 29, 44, 66, 94, 135, 190, 260];
+const RAYON_TUNNEL = 5.6;
+/** Jusqu'où une nervure peut s'étendre du côté où la route tourne, sans croiser ses voisines. */
+function portee(p, i, cote) {
+  let k = 0;
+  for (let j = i - 9; j <= i + 9; j++) k = Math.max(k, cote * p.k[borne(j, 0, p.n - 1)]);
+  return k > 1e-5 ? 0.8 / k : Infinity;
+}
+const paysageA = (p, i, nom) => p.poids[i * 6 + PAYSAGES.indexOf(nom)];
+/** Un point à `u` mètres de l'axe sur la nervure `i`, à la hauteur `y`. */
+function aCote(p, i, u, y) { return { x: p.x[i] + Math.cos(p.cap[i]) * u, y, z: p.z[i] + Math.sin(p.cap[i]) * u }; }
+
+/** Le relief : une grille le long de la route. Neuf nombres par sommet : place, normale, écart à l'axe, abscisse, et
+ *  pavé (1 : village ou port) + 2 × abri (1 : sous le tunnel). */
+function batirRelief(p) {
+  const m = TRAVERS.length, v = new Float32Array(p.n * m * 9), indices = [];
+  for (let i = 0; i < p.n; i++) for (let j = 0; j < m; j++) {
+    const cote = Math.sign(TRAVERS[j]), u = cote * Math.min(Math.abs(TRAVERS[j]), Math.max(portee(p, i, cote), DEMI_ROUTE + 1.5)), o = (i * m + j) * 9;
+    const q = aCote(p, i, u, sol(p, i, u));
+    v[o] = q.x; v[o + 1] = q.y; v[o + 2] = q.z; v[o + 6] = u; v[o + 7] = i * DS;
+    v[o + 8] = Math.min(1, paysageA(p, i, 'village') + paysageA(p, i, 'port')) * 0.99 + 2 * Math.round(paysageA(p, i, 'tunnel'));
+  }
+  const milieu = TRAVERS.indexOf(-DEMI_ROUTE), d = (a, b, k) => v[a + k] - v[b + k];
+  for (let i = 0; i < p.n; i++) for (let j = 0; j < m; j++) {
+    const o = (i * m + j) * 9, i0 = Math.max(i - 1, 0) * m + j, i1 = Math.min(i + 1, p.n - 1) * m + j;
+    const j0 = j === 0 || j === milieu + 1 ? j : j - 1, j1 = j === m - 1 || j === milieu ? j : j + 1;
+    const ax = d(i1 * 9, i0 * 9, 0), ay = d(i1 * 9, i0 * 9, 1), az = d(i1 * 9, i0 * 9, 2);
+    const bx = d((i * m + j1) * 9, (i * m + j0) * 9, 0), by = d((i * m + j1) * 9, (i * m + j0) * 9, 1), bz = d((i * m + j1) * 9, (i * m + j0) * 9, 2);
+    let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+    const l = Math.hypot(nx, ny, nz) * (ny < 0 ? -1 : 1);
+    if (Math.abs(l) < 1e-9 || Math.abs(ny / l) < 1e-6) { nx = 0; ny = 1; nz = 0; } else { nx /= l; ny /= l; nz /= l; }   // deux points confondus, ou une paroi à pic : la normale monte
+    v[o + 3] = nx; v[o + 4] = ny; v[o + 5] = nz;
+  }
+  for (let i = 0; i < p.n - 1; i++) for (let j = 0; j < m - 1; j++) {
+    if (j === milieu) continue;                                            // la chaussée a sa propre bande
+    const a = i * m + j, b = a + m;
+    indices.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  return { v, indices: new Uint32Array(indices) };
+}
+
+/** La chaussée : deux sommets par nervure. Sept nombres : place, écart à l'axe, abscisse, abri, lampadaires. */
+function batirChaussee(p) {
+  const v = new Float32Array(p.n * 2 * 7);
+  for (let i = 0; i < p.n; i++) [-DEMI_ROUTE, DEMI_ROUTE].forEach((u, j) => {
+    const q = aCote(p, i, u, p.y[i]);
+    v.set([q.x, q.y, q.z, u, i * DS, paysageA(p, i, 'tunnel'), Math.min(1, paysageA(p, i, 'village') + paysageA(p, i, 'port'))], (i * 2 + j) * 7);
+  });
+  return v;
+}
+
+/** Les ouvrages : la voûte du tunnel et ses deux fronts, les glissières, les parapets et le tablier des ponts. Neuf nombres
+ *  par sommet : place, normale, puis où il est sur l'ouvrage (deux nombres) et son genre (0 voûte, 1 front, 2 béton, 3 glissière). */
+function batirOuvrages(p) {
+  const v = [];
+  const face = (a, b, c, d, n, genre, ua, ub) => { for (const [q, w] of [[a, ua], [b, ub], [c, ub], [a, ua], [c, ub], [d, ua]]) v.push(q.x, q.y, q.z, n.x, n.y, n.z, w[0], w[1], genre); };
+  const sousTunnel = (i) => paysageA(p, i, 'tunnel') > 0.5, surPont = (i) => paysageA(p, i, 'pont') > 0.5;
+  const glissiere = (i) => !sousTunnel(i) && paysageA(p, i, 'falaise') + paysageA(p, i, 'foret') + paysageA(p, i, 'pont') > 0.55;
+  const arche = (i, k, r, h) => aCote(p, i, r * Math.cos(Math.PI * k / 12), p.y[i] + h * Math.sin(Math.PI * k / 12));
+  for (let i = 0; i < p.n - 1; i++) {
+    const s0 = i * DS, s1 = s0 + DS, avant = { x: Math.sin(p.cap[i]), y: 0, z: -Math.cos(p.cap[i]) }, droite = { x: Math.cos(p.cap[i]), y: 0, z: Math.sin(p.cap[i]) };
+    if (sousTunnel(i) && sousTunnel(i + 1)) {
+      for (let k = 0; k < 12; k++) {                                       // la voûte, vue du dedans
+        const t = Math.PI * (k + 0.5) / 12, n = { x: -droite.x * Math.cos(t), y: -Math.sin(t), z: -droite.z * Math.cos(t) };
+        face(arche(i, k, RAYON_TUNNEL, 5.4), arche(i + 1, k, RAYON_TUNNEL, 5.4), arche(i + 1, k + 1, RAYON_TUNNEL, 5.4), arche(i, k + 1, RAYON_TUNNEL, 5.4), n, 0, [k / 12, s0], [k / 12, s1]);
+      }
+      const toit = p.y[i] + 12.6, toit1 = p.y[i + 1] + 12.6;              // le rocher par-dessus
+      face(aCote(p, i, -13, toit), aCote(p, i + 1, -13, toit1), aCote(p, i + 1, 13, toit1), aCote(p, i, 13, toit), { x: 0, y: 1, z: 0 }, 1, [0, s0], [0, s1]);
+    }
+    if (sousTunnel(i) !== sousTunnel(i + 1)) {                             // un front : le mur autour de la bouche
+      const j = sousTunnel(i) ? i : i + 1, sens = sousTunnel(i) ? 1 : -1, n = { x: avant.x * sens, y: 0, z: avant.z * sens };
+      for (let k = 0; k < 12; k++) face(arche(j, k, RAYON_TUNNEL, 5.4), arche(j, k, 18, 15), arche(j, k + 1, 18, 15), arche(j, k + 1, RAYON_TUNNEL, 5.4), n, 1, [k / 12, 0], [k / 12, 1]);
+    }
+    for (const cote of [1, -1]) {
+      if (cote > 0 ? glissiere(i) && glissiere(i + 1) : surPont(i) && surPont(i + 1)) {
+        const u = cote * GLISSIERE, n = { x: -droite.x * cote, y: 0, z: -droite.z * cote };
+        face(aCote(p, i, u, p.y[i] - 0.05), aCote(p, i + 1, u, p.y[i + 1] - 0.05), aCote(p, i + 1, u, p.y[i + 1] + 0.72), aCote(p, i, u, p.y[i] + 0.72), n, 3, [0, s0], [1, s1]);
+      }
+      if (surPont(i) && surPont(i + 1)) {                                  // le flanc du tablier
+        const u = cote * (GLISSIERE + 0.3), n = { x: droite.x * cote, y: 0, z: droite.z * cote };
+        face(aCote(p, i, u, p.y[i] - 1.6), aCote(p, i + 1, u, p.y[i + 1] - 1.6), aCote(p, i + 1, u, p.y[i + 1] + 0.3), aCote(p, i, u, p.y[i] + 0.3), n, 2, [0, s0], [1, s1]);
+      }
+    }
+  }
+  return new Float32Array(v);
+}
+
+/** Les arbres : pins parasols (0), cyprès (1), buissons (2). Huit nombres chacun : pied, hauteur, rayon, genre, deux hasards. */
+function planter(p) {
+  const alea = hasard(77), arbres = [];
+  for (let i = 3; i < p.n - 3; i++) for (const cote of [-1, 1]) {
+    const w = (nom) => paysageA(p, i, nom), densite = 6.5 * w('foret') + (cote < 0 ? 1.3 : 0.5) * w('falaise') + 0.7 * w('village') + 0.04 * w('port');
+    for (let reste = Math.floor(densite) + (alea() < densite % 1 ? 1 : 0); reste > 0; reste--) {
+      const d = 3.2 + Math.pow(alea(), 1.5) * 150, u = cote * (DEMI_ROUTE + d);
+      const y = sol(p, i, u), pente = Math.abs(sol(p, i, u + cote * 2.5) - y) / 2.5, r1 = alea(), r2 = alea(), r3 = alea(), r4 = alea();
+      if (Math.abs(u) > portee(p, i, cote) * 0.9 || y < 1.4 || pente > 1.3 || (w('village') > 0.3 && d < 26) || w('tunnel') > 0.3 && d < 14) continue;
+      const genre = pente > 0.7 || r1 < 0.28 ? 2 : r2 < (w('foret') > 0.5 ? 0.78 : 0.45) ? 0 : 1;
+      const h = genre === 2 ? 1.1 + 1.9 * r3 : genre === 0 ? 7 + 7 * r3 : 8 + 9 * r3, q = aCote(p, i, u, y - 0.25), le_long = (r4 - 0.5) * DS;
+      arbres.push(q.x + Math.sin(p.cap[i]) * le_long, q.y, q.z - Math.cos(p.cap[i]) * le_long, h, genre === 0 ? h * (0.3 + 0.14 * r4) : genre === 1 ? h * 0.115 : h * 0.95, genre, r3, r4);
+    }
+  }
+  return new Float32Array(arbres);
+}
+
+// Les boîtes : douze nombres chacune : centre x, pied y, centre z, cap ; largeur (en travers), hauteur, longueur, genre ;
+// un hasard et une couleur. Genres : 0 maison, 1 toit, 2 hangar, 3 béton, 4 coque du ferry, 5 pont du ferry, 6 cheminée,
+// 7 phare, 8 lanterne, 9 carrosserie, 10 habitacle, 11 banderole.
+const BLANC = [0.8, 0.8, 0.78];
+/** Ce qui ne bouge pas : les maisons du village, les hangars du port, les piles des ponts, le phare, les portiques. */
+function construire(p) {
+  const alea = hasard(31), boites = [], lumieres = [];
+  const boite = (q, cap, l, h, long, genre, k) => boites.push(q.x, q.y, q.z, cap, l, h, long, genre, alea(), k[0], k[1], k[2]);
+  const enduits = [[0.78, 0.6, 0.38], [0.8, 0.52, 0.4], [0.82, 0.76, 0.62], [0.84, 0.82, 0.78], [0.8, 0.68, 0.42], [0.72, 0.5, 0.42]];
+  for (let i = 4; i < p.n - 4; i++) {
+    const cap = p.cap[i];
+    if (paysageA(p, i, 'village') > 0.7 && i % 3 === 0) for (const cote of [-1, 1]) {
+      if (alea() < 0.14) continue;
+      const long = 10 + 5 * alea(), prof = 8 + 3 * alea(), h = 5.6 + 3.6 * alea(), u = cote * (DEMI_ROUTE + 2.6 + prof / 2);
+      const pied = Math.min(sol(p, i, u - cote * prof / 2), sol(p, i, u + cote * prof / 2)) - 0.6, haut = Math.max(sol(p, i, u - cote * prof / 2), sol(p, i, u)) + h;
+      boite(aCote(p, i, u, pied), cap, prof, haut - pied, long, 0, enduits[Math.floor(alea() * enduits.length)]);
+      boite(aCote(p, i, u, haut), cap, prof + 0.9, 2.3, long + 0.7, 1, [0.52, 0.24, 0.14]);
+    }
+    if (paysageA(p, i, 'port') > 0.9 && i % 6 === 0 && i * DS < p.longueur - 90) {
+      boite(aCote(p, i, -(DEMI_ROUTE + 19), 0.2 + p.y[i]), cap, 15, 8 + 3 * alea(), 30, 2, [0.42, 0.44, 0.46]);
+      boite(aCote(p, i, -(DEMI_ROUTE + 19), 8 + p.y[i]), cap, 15.6, 2.4, 30.4, 1, [0.3, 0.32, 0.35]);
+    }
+    if (paysageA(p, i, 'pont') > 0.5 && i % 6 === 0) boite(aCote(p, i, 0, -5), cap, 9, p.y[i] - 1.5 + 5, 2.6, 3, [0.5, 0.48, 0.45]);
+    const eclaire = paysageA(p, i, 'village') + paysageA(p, i, 'port') > 0.6;
+    if (eclaire && i % 5 === 0 && i * DS < p.longueur - 30) {                // un lampadaire, un côté sur deux
+      const cote = (i / 5) % 2 ? 1 : -1, q = aCote(p, i, cote * (DEMI_ROUTE + 1.5), p.y[i]);
+      boite(q, cap, 0.16, 6.3, 0.16, 3, [0.12, 0.12, 0.13]);
+      lumieres.push(q.x - Math.cos(cap) * cote * 0.9, q.y + 6.3, q.z - Math.sin(cap) * cote * 0.9, 1.5, 2.8, 1.6, 0.62, 1);
+    }
+    if (paysageA(p, i, 'tunnel') > 0.5 && i % 3 === 0) lumieres.push(p.x[i], p.y[i] + 5.15, p.z[i], 1.1, 2.6, 1.45, 0.5, 0);
+  }
+  const portique = (s, k) => {                                             // deux poteaux et une banderole en travers
+    const r = ou(p, s), i = r.i;
+    for (const cote of [-1, 1]) boite(aCote(p, i, cote * 6.4, r.y), r.cap, 0.4, 6.6, 0.4, 3, [0.2, 0.2, 0.22]);
+    boite(aCote(p, i, 0, r.y + 5.3), r.cap, 13.2, 1.3, 0.3, 11, k);
+  };
+  portique(DEPART + 6, [1, 0.74, 0.2]);
+  portique(p.arrivee, [1, 0.74, 0.2]);
+  const fin = ou(p, p.longueur), bout = (devant, droite, y) => ({ x: fin.x + Math.sin(fin.cap) * devant + fin.dx * droite, y, z: fin.z - Math.cos(fin.cap) * devant + fin.dz * droite });
+  boite(bout(150, 74, -4), fin.cap, 16, 6.5, 16, 3, [0.3, 0.29, 0.27]);     // l'îlot du phare, puis le phare, en trois fûts
+  boite(bout(150, 74, 2.5), fin.cap, 6.4, 14, 6.4, 7, BLANC);
+  boite(bout(150, 74, 16.5), fin.cap, 5.2, 11, 5.2, 7, [0.72, 0.16, 0.12]);
+  boite(bout(150, 74, 27.5), fin.cap, 4.2, 7, 4.2, 7, BLANC);
+  boite(bout(150, 74, 34.5), fin.cap, 5.6, 0.5, 5.6, 3, [0.16, 0.16, 0.17]);
+  boite(bout(150, 74, 35), fin.cap, 3, 2.8, 3, 8, [1, 0.95, 0.8]);
+  boite(bout(150, 74, 37.8), fin.cap, 3.6, 1.4, 3.6, 1, [0.5, 0.14, 0.1]);
+  lumieres.push(...Object.values(bout(150, 74, 36.4)), 5, 3, 2.8, 2.2, 1);
+  return { boites: new Float32Array(boites), lumieres: new Float32Array(lumieres), phare: bout(150, 74, 36.4) };
+}
+/** Le ferry, à quai au bout de la route : ses boîtes et ses guirlandes, décalés de `large` mètres quand il s'en va. */
+function ferry(p, large) {
+  const fin = ou(p, p.longueur - 70), cap = fin.cap, boites = [], lumieres = [];
+  const ici = (droite, y, devant) => ({ x: fin.x + fin.dx * (droite + large * 0.55) + Math.sin(cap) * (devant + large), y, z: fin.z + fin.dz * (droite + large * 0.55) - Math.cos(cap) * (devant + large) });
+  const boite = (droite, y, devant, l, h, long, genre, k) => boites.push(...Object.values(ici(droite, y, devant)), cap, l, h, long, genre, 0.37, k[0], k[1], k[2]);
+  boite(28, -1.2, 0, 16, 7.4, 92, 4, [0.86, 0.86, 0.84]);
+  boite(28, 6.2, -4, 13.5, 3.4, 70, 5, BLANC);
+  boite(28, 9.6, -6, 12.5, 3.2, 60, 5, BLANC);
+  boite(28, 12.8, -10, 10, 3, 34, 5, BLANC);
+  boite(28, 15.8, -22, 5, 6.4, 7, 6, [0.78, 0.2, 0.12]);
+  boite(28, 15.8, 4, 8.5, 2.6, 9, 5, BLANC);
+  for (let k = 0; k < 12; k++) lumieres.push(...Object.values(ici(28 - 8.2, 16.2 - Math.abs(k - 5.5) * 0.5, -40 + k * 7)), 0.9, 2.6, 2, 1.1, 1);
+  return { boites, lumieres };
+}
+
+/** La voiture de Reachy : un coupé de porcelaine. Le nez vers les z négatifs, x à droite, y en haut. Dix nombres par
+ *  sommet : place, normale, couleur, et ce qui luit (1 : feux arrière, 2 : phares). */
+function maillageAuto() {
+  const v = [], laque = [0.66, 0.67, 0.69], vitre = [0.015, 0.02, 0.028], noir = [0.03, 0.03, 0.035], jaune = [1, 0.74, 0.2];
+  const tri = (a, b, c, k, luit) => {
+    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], wx = c[0] - a[0], wy = c[1] - a[1], wz = c[2] - a[2];
+    let n = [uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx];
+    const l = Math.hypot(n[0], n[1], n[2]) || 1;
+    for (const q of [a, b, c]) v.push(q[0], q[1], q[2], n[0] / l, n[1] / l, n[2] / l, k[0], k[1], k[2], luit || 0);
+  };
+  const quad = (a, b, c, d, k, luit) => { tri(a, b, c, k, luit); tri(a, c, d, k, luit); };
+  // Le profil, du nez à la poupe : z, la hauteur de la ceinture, la demi-largeur, puis le pavillon (hauteur, demi-largeur) s'il y en a un.
+  const couples = [[-2.15, 0.56, 0.74], [-1.85, 0.7, 0.9], [-0.7, 0.82, 0.93, 0.84, 0.8], [0.05, 0.84, 0.94, 1.2, 0.6], [0.8, 0.86, 0.94, 1.17, 0.6], [1.5, 0.9, 0.92, 0.92, 0.78], [2.15, 0.8, 0.84]];
+  const bas = 0.26;
+  for (let i = 0; i < couples.length - 1; i++) {
+    const [z0, c0, l0, t0, m0] = couples[i], [z1, c1, l1, t1, m1] = couples[i + 1];
+    for (const s of [-1, 1]) {
+      const flanc = [[s * l0, bas, z0], [s * l1, bas, z1], [s * l1, c1, z1], [s * l0, c0, z0]];
+      quad(...(s > 0 ? flanc : flanc.reverse()), laque);
+      if (t0 !== undefined && t1 !== undefined) {                            // une vitre de côté
+        const glace = [[s * l0, c0, z0], [s * l1, c1, z1], [s * m1, t1, z1], [s * m0, t0, z0]];
+        quad(...(s > 0 ? glace : glace.reverse()), vitre);
+      }
+    }
+    const h0 = t0 === undefined ? c0 : t0, w0 = t0 === undefined ? l0 : m0, h1 = t1 === undefined ? c1 : t1, w1 = t1 === undefined ? l1 : m1;
+    const dessus = i === 2 || i === 4 ? vitre : laque;                       // le pare-brise, la lunette
+    quad([-w0, h0, z0], [w0, h0, z0], [w1, h1, z1], [-w1, h1, z1], dessus);
+    if (dessus === laque && i < 2) quad([-0.16, h0 + 0.004, z0], [0.16, h0 + 0.004, z0], [0.16, h1 + 0.004, z1], [-0.16, h1 + 0.004, z1], jaune);
+  }
+  const [zn, cn, ln] = couples[0], [zp, cp, lp] = couples[couples.length - 1];
+  quad([ln, bas, zn], [-ln, bas, zn], [-ln, cn, zn], [ln, cn, zn], noir);     // la calandre, puis les phares
+  for (const s of [-1, 1]) quad([s * 0.72, 0.36, zn - 0.01], [s * 0.36, 0.36, zn - 0.01], [s * 0.36, 0.5, zn - 0.01], [s * 0.72, 0.5, zn - 0.01], [1, 0.95, 0.8], 2);
+  quad([-lp, bas, zp], [lp, bas, zp], [lp, cp, zp], [-lp, cp, zp], noir);     // la poupe, puis le bandeau des feux
+  quad([-lp + 0.06, 0.6, zp + 0.01], [lp - 0.06, 0.6, zp + 0.01], [lp - 0.06, 0.72, zp + 0.01], [-lp + 0.06, 0.72, zp + 0.01], [1, 0.1, 0.06], 1);
+  for (const sx of [-1, 1]) for (const z of [-1.32, 1.3]) {                    // les roues : des octogones
+    const x = sx * 0.82, r = 0.34, e = sx * 0.13, pt = (k, dx) => [x + dx, 0.34 + r * Math.sin(k * TAU / 8), z + r * Math.cos(k * TAU / 8)];
+    for (let k = 0; k < 8; k++) {
+      const jante = [pt(k, e), pt(k + 1, e), pt(k + 1, -e), pt(k, -e)], disque = [[x + e, 0.34, z], pt(k, e), pt(k + 1, e)];
+      quad(...(sx > 0 ? jante.reverse() : jante), noir);
+      tri(...(sx > 0 ? disque : disque.reverse()), [0.2, 0.2, 0.22]);
+    }
+  }
+  return new Float32Array(v);
+}
+// ===== Les matrices (par colonnes, comme WebGL) et le regard =====
+function perspective(champ, aspect, pres, loin) {
+  const f = 1 / Math.tan(champ / 2), m = new Float32Array(16);
+  m[0] = f / aspect; m[5] = f; m[10] = (loin + pres) / (pres - loin); m[11] = -1; m[14] = 2 * loin * pres / (pres - loin);
+  return m;
+}
+/** Les trois axes d'un regard : `a` devant, `d` à droite, `h` en haut. Roulis positif : le côté droit descend. */
+function axes(cap, tangage, roulis) {
+  const ct = Math.cos(tangage), st = Math.sin(tangage), sc = Math.sin(cap), cc = Math.cos(cap), cr = Math.cos(roulis), sr = Math.sin(roulis);
+  const d0 = { x: cc, y: 0, z: sc }, h0 = { x: -sc * st, y: ct, z: cc * st };
+  return {
+    a: { x: sc * ct, y: st, z: -cc * ct },
+    d: { x: d0.x * cr - h0.x * sr, y: -h0.y * sr, z: d0.z * cr - h0.z * sr },
+    h: { x: d0.x * sr + h0.x * cr, y: h0.y * cr, z: d0.z * sr + h0.z * cr },
+  };
+}
+function vueDe(oeil, r) {
+  const m = new Float32Array(16), p = (v) => v.x * oeil.x + v.y * oeil.y + v.z * oeil.z;
+  m[0] = r.d.x; m[4] = r.d.y; m[8] = r.d.z; m[12] = -p(r.d);
+  m[1] = r.h.x; m[5] = r.h.y; m[9] = r.h.z; m[13] = -p(r.h);
+  m[2] = -r.a.x; m[6] = -r.a.y; m[10] = -r.a.z; m[14] = p(r.a);
+  m[15] = 1;
+  return m;
+}
+function fois(a, b) {
+  const m = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let l = 0; l < 4; l++) m[c * 4 + l] = a[l] * b[c * 4] + a[4 + l] * b[c * 4 + 1] + a[8 + l] * b[c * 4 + 2] + a[12 + l] * b[c * 4 + 3];
+  return m;
+}
+/** Un point du monde dans l'image : x et y de -1 à 1 (y vers le haut), `w` négatif s'il est derrière. */
+function projeter(pv, x, y, z) {
+  const w = pv[3] * x + pv[7] * y + pv[11] * z + pv[15];
+  return { x: (pv[0] * x + pv[4] * y + pv[8] * z + pv[12]) / w, y: (pv[1] * x + pv[5] * y + pv[9] * z + pv[13]) / w, w };
+}
+const ecartAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+// ===== Le soir : ce que le soleil, le ciel et la lune éclairent, selon la hauteur du soleil =====
+// La hauteur du soleil (degrés), sa lumière, le zénith, l'horizon, l'embrasement autour de lui, la part de nuit.
+const SOIR = [
+  [11, [2.2, 1.75, 1.2], [0.07, 0.19, 0.45], [0.5, 0.52, 0.56], [1.3, 0.8, 0.35], 0],
+  [4, [2.1, 1.3, 0.6], [0.06, 0.15, 0.4], [0.62, 0.5, 0.42], [1.9, 0.85, 0.25], 0],
+  [0.4, [1.7, 0.65, 0.2], [0.05, 0.1, 0.3], [0.7, 0.4, 0.26], [2.6, 0.8, 0.18], 0.05],
+  [-2.4, [0.4, 0.11, 0.03], [0.03, 0.06, 0.2], [0.5, 0.24, 0.2], [1.8, 0.42, 0.14], 0.3],
+  [-6, [0, 0, 0], [0.012, 0.022, 0.075], [0.07, 0.065, 0.12], [0.2, 0.06, 0.05], 0.75],
+  [-12, [0, 0, 0], [0.004, 0.007, 0.022], [0.016, 0.022, 0.045], [0.02, 0.012, 0.02], 1],
+];
+const VERS_SOLEIL = { x: 0.8, z: -0.6 };          // il se couche sur la mer, un peu devant
+function soir(hauteur) {
+  let i = 1;
+  while (i < SOIR.length - 1 && hauteur < SOIR[i][0]) i += 1;
+  const a = SOIR[i - 1], b = SOIR[i], t = borne((a[0] - hauteur) / (a[0] - b[0]), 0, 1), entre = (k) => [0, 1, 2].map((j) => mele(a[k][j], b[k][j], t));
+  const e = hauteur * RAD, nuit = mele(a[5], b[5], t), horizon = entre(3);
+  return {
+    uSoleil: [VERS_SOLEIL.x * Math.cos(e), Math.sin(e), VERS_SOLEIL.z * Math.cos(e)], uSoleilK: entre(1), uCiel: entre(2), uHorizon: horizon, uLueur: entre(4),
+    uSol: horizon.map((v, j) => v * [0.24, 0.2, 0.16][j]), uLuneK: [0.1 * nuit, 0.13 * nuit, 0.21 * nuit], uNuit: nuit,
+    uLampes: lisse((nuit - 0.03) / 0.25), phares: lisse((nuit - 0.02) / 0.2), pose: 1 + 0.85 * nuit,
+  };
+}
+
+/** La caméra suit la voiture de derrière, dans le sens où elle va : quand l'arrière chasse, on la voit de travers. */
+const camera = { cap: 0, tangage: 0, roulis: 0, champ: 1.02, secousse: 0, oeil: { x: 0, y: 0, z: 0 }, regard: null };
+function suivre(g, dt, net) {
+  const c = g.auto, ici = placer(g.p, c), k = (taux) => (net ? 1 : 1 - Math.exp(-dt * taux));
+  camera.cap += ecartAngle(c.route - camera.cap) * k(5.5);
+  camera.tangage += (Math.atan(ici.pente) * 0.8 - 0.13 - camera.tangage) * k(3);
+  camera.roulis += (borne((c.lacet - c.route) * 0.25, -0.12, 0.12) - camera.roulis) * k(4);
+  camera.champ += (mele(1, 1.34, lisse((c.v - 30) / (V_NITRO - 30))) + 0.1 * c.turbo - camera.champ) * k(2.5);
+  camera.secousse = Math.max(camera.secousse * Math.exp(-dt * 6), c.hors * c.v * 0.004 + c.frotte * 0.3);
+  const r = axes(camera.cap, camera.tangage, camera.roulis), recul = 7 + 1.2 * c.turbo, s = camera.secousse;
+  camera.oeil = { x: ici.x - r.a.x * recul + (Math.random() - 0.5) * s, y: ici.y + 2.5 - r.a.y * recul + (Math.random() - 0.5) * s, z: ici.z - r.a.z * recul + (Math.random() - 0.5) * s };
+  camera.regard = r;
+}
+
+// ===== Le rendu : WebGL 2, sans bibliothèque. Tout est calculé : aucune image, aucun modèle. =====
+const toile = $('toile');
+const COMMUN = `precision highp float;
+uniform vec3 uCam; uniform float uTemps;
+uniform vec3 uSoleil, uSoleilK, uCiel, uHorizon, uLueur, uSol, uLuneK; uniform float uNuit, uLampes;
+uniform vec4 uPhare; uniform vec3 uPhareDir;
+const vec3 LUNE = vec3(-.7539, .5107, .4134);
+uint hu(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }
+float hf(uint x) { return float(hu(x) >> 8) * (1. / 16777216.); }
+float h2(vec2 p) { ivec2 i = ivec2(floor(p)); return hf(uint(i.x) * 0x9E3779B1U ^ uint(i.y) * 0x85EBCA6BU); }
+float bruit(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(h2(i), h2(i + vec2(1., 0.)), f.x), mix(h2(i + vec2(0., 1.)), h2(i + vec2(1., 1.)), f.x), f.y);
+}
+float fbm(vec2 p) { float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a * bruit(p); p = p * 2.03 + 17.; a *= .5; } return s; }
+// La couleur de l'air dans une direction : du zénith à l'horizon, embrasé du côté où le soleil se couche.
+vec3 fond(vec3 d) {
+  float h = max(d.y, 0.);
+  vec2 a = normalize(d.xz + 1e-5), b = normalize(uSoleil.xz);
+  return mix(uHorizon, uCiel, pow(h, .42)) + uLueur * pow(max(dot(a, b), 0.), 5.) * exp(-h * 5.5) * .55;
+}
+// La brume du soir : le lointain prend la couleur de l'air.
+vec3 brume(vec3 c, vec3 m) {
+  vec3 v = m - uCam; float d = length(v); vec3 vers = v / max(d, .001);
+  return mix(fond(vec3(vers.x, max(vers.y, .03), vers.z)) * .92, c, exp(-d / 2600.));
+}
+// Ce qui éclaire une surface : le soleil, le ciel par-dessus, le sol par-dessous, la lune, les phares ; sous le tunnel, ses lampes.
+vec3 lumiere(vec3 n, vec3 m, float abri) {
+  vec3 dehors = uSoleilK * max(dot(n, uSoleil), 0.) + mix(uSol, uCiel * .9 + uHorizon * .45, n.y * .5 + .5) + uLuneK * (max(dot(n, LUNE), 0.) * .85 + .15);
+  vec3 v = m - uPhare.xyz; float d = length(v); vec3 l = v / max(d, .01);
+  vec3 phares = vec3(1., .92, .76) * uPhare.w * smoothstep(.78, .97, dot(l, uPhareDir)) * max(dot(n, -l), 0.) * 55. / (8. + d * d * .22);
+  return dehors * (1. - abri) + vec3(1., .62, .28) * .42 * abri + phares;
+}
+`;
+const VS_PLEIN = `out vec2 vUV;
+void main() { vec2 p = vec2(float(gl_VertexID & 1) * 4. - 1., float((gl_VertexID >> 1) & 1) * 4. - 1.); vUV = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`;
+
+const SOURCES = {
+  // Le ciel : le soleil qui descend, un voile de nuages qu'il embrase, puis les étoiles et la lune.
+  ciel: [`uniform vec2 uTan; out vec2 vNdc;
+void main() { vec2 p = vec2(float(gl_VertexID & 1) * 4. - 1., float((gl_VertexID >> 1) & 1) * 4. - 1.); vNdc = p * uTan; gl_Position = vec4(p, 1., 1.); }`, COMMUN + `in vec2 vNdc; out vec4 o;
+uniform vec3 uDroite, uHaut, uAvant;
+void main() {
+  vec3 d = normalize(uAvant + vNdc.x * uDroite + vNdc.y * uHaut);
+  vec3 col = fond(d);
+  float s = dot(d, uSoleil), voile = 0.;
+  col += uSoleilK * (smoothstep(.99955, .99976, s) * 14. + pow(max(s, 0.), 900.) * 1.2 + pow(max(s, 0.), 40.) * .1);
+  if (d.y > .012) {
+    vec2 q = d.xz / (d.y + .09) * 1.05 + uTemps * vec2(.004, .0015);
+    voile = smoothstep(.45, .78, fbm(q) * .65 + fbm(q * 2.7 + 4.) * .35) * smoothstep(.012, .15, d.y) * .86;
+    vec3 teinte = mix(uCiel * .5 + uHorizon * .28, uSoleilK * .3 + uLueur * .85, pow(max(s, 0.) * .5 + .5, 3.) * (1. - smoothstep(.15, .7, d.y) * .65));
+    col = mix(col, teinte + uLuneK * .45, voile);
+  }
+  if (uNuit > .02 && d.y > -.01) {
+    vec3 a = abs(d);                                                   // les étoiles, sur les faces d'un cube
+    vec2 q = (a.y >= a.x && a.y >= a.z ? d.xz / a.y : a.x >= a.z ? d.zy / a.x + 5. : d.xy / a.z + 11.) * 70.;
+    vec2 c = floor(q), f = fract(q) - .5;
+    float r = h2(c), taille = min(max(.07, fwidth(q.x) * 1.1), .3);
+    col += mix(vec3(.75, .85, 1.), vec3(1., .86, .7), h2(c + 91.)) * pow(r, 22.) * 9. * (1. - smoothstep(0., taille, length(f - (vec2(h2(c + 31.), h2(c + 57.)) - .5) * .7)))
+      * (.75 + .25 * sin(uTemps * 3. + r * 400.)) * smoothstep(-.01, .1, d.y) * uNuit * (1. - voile);
+    float m = dot(d, LUNE);                                            // la lune se lève sur la montagne
+    vec3 t = normalize(cross(LUNE, vec3(0., 1., 0.))), b = cross(t, LUNE);
+    vec2 l = vec2(dot(d, t), dot(d, b)) / .036;
+    float disque = (1. - smoothstep(.95, 1., length(l))) * step(0., m) * uNuit;
+    col = mix(col, vec3(1., .96, .88) * (1.8 - smoothstep(.38, .62, fbm(l * 2.2 + 3.) * .6 + fbm(l * 5. + 9.) * .4)) * (.72 + .28 * sqrt(max(1. - dot(l, l), 0.))), disque);
+    col += vec3(.45, .55, .8) * (pow(max(m, 0.), 900.) * .5 + pow(max(m, 0.), 60.) * .06) * uNuit * (1. - disque);
+  }
+  o = vec4(col, 1.);
+}`],
+
+  // La mer : la houle, le clapot, et le ciel qu'elle renvoie : au couchant, une traînée de soleil.
+  mer: [`in vec2 aQ; uniform mat4 uPV; uniform vec3 uPlan;
+out vec3 vM;
+void main() { vM = vec3(uPlan.x + aQ.x * 42000., uPlan.y, uPlan.z + aQ.y * 42000.); gl_Position = uPV * vec4(vM, 1.); }`, COMMUN + `in vec3 vM; out vec4 o;
+void onde(vec2 p, vec2 d, float f, float a, float w, inout vec2 g) { g += d * f * a * cos(dot(p, d) * f + uTemps * w); }
+void main() {
+  vec3 v = vM - uCam; float dist = length(v); vec3 vue = v / dist; vec2 p = vM.xz, g = vec2(0.);
+  float calme = 1. / (1. + dist * .0035);
+  onde(p, vec2(.8, .6), .045, 1.1, .9, g); onde(p, vec2(-.5, .86), .09, .5, 1.3, g); onde(p, vec2(.96, -.28), .17, .26, 1.9, g);
+  onde(p, vec2(.3, .95), .31, .13, 2.6, g); onde(p, vec2(-.86, .5), .55, .07, 3.4, g);
+  vec2 clapot = vec2(bruit(p * 1.3 + uTemps * .6), bruit(p * 1.3 - uTemps * .5 + 30.)) - .5;
+  vec3 n = normalize(vec3(-(g.x + clapot.x * .3) * calme, 1., -(g.y + clapot.y * .3) * calme));
+  vec3 r = reflect(vue, n); r.y = abs(r.y) + .02; r = normalize(r);
+  float fresnel = .02 + .98 * pow(1. - max(dot(-vue, n), 0.), 5.);
+  vec3 reflet = fond(r) + uSoleilK * pow(max(dot(r, uSoleil), 0.), 420.) * 26. + uLuneK * pow(max(dot(r, LUNE), 0.), 300.) * 34.;
+  vec3 eau = vec3(.012, .05, .07) * (uCiel * 2.2 + uHorizon * .8 + uLuneK) + vec3(.02, .09, .08) * uSoleilK * .06;
+  o = vec4(brume(mix(eau, reflet, fresnel), vM), 1.);
+}`],
+
+  // Le relief : la roche et ses strates sur les pentes, la garrigue ailleurs, la grève au ras de l'eau, le pavé au village.
+  relief: [`in vec3 aP; in vec3 aN; in vec3 aI; uniform mat4 uPV;
+out vec3 vM; out vec3 vN; out vec3 vI;
+void main() { vM = aP; vN = aN; vI = aI; gl_Position = uPV * vec4(aP, 1.); }`, COMMUN + `in vec3 vM; in vec3 vN; in vec3 vI; out vec4 o;
+void main() {
+  vec3 n = normalize(vN);
+  float abri = step(1.5, vI.z), pave = vI.z - 2. * abri, bord = abs(vI.x) - ${DEMI_ROUTE};
+  float roche = smoothstep(.2, .46, 1. - n.y + (bruit(vM.xz * .09) - .5) * .22);
+  float strate = bruit(vec2(vM.y * .45 + bruit(vM.xz * .04) * 5., dot(vM.xz, vec2(.03, .02))));
+  float veine = bruit(vec2(dot(vM.xz, vec2(.7, .7)) * .22, vM.y * .05)) * bruit(vM.xz * 1.3 + vM.y);
+  vec3 pierre = mix(vec3(.17, .13, .10), vec3(.40, .31, .22), strate) * (.55 + .9 * veine);
+  vec3 garrigue = mix(vec3(.075, .095, .035), vec3(.24, .20, .07), bruit(vM.xz * .045)) * (.7 + .6 * bruit(vM.xz * .9));
+  vec3 alb = mix(garrigue, pierre, roche);
+  alb = mix(alb, vec3(.42, .36, .26), (1. - smoothstep(.6, 3.5, vM.y)) * (1. - roche * .6));
+  alb *= mix(.55, 1., smoothstep(-.2, .9, vM.y));
+  alb = mix(alb, vec3(.21, .2, .19) * (.85 + .3 * bruit(vM.xz * 1.5)), pave * (1. - roche));
+  alb = mix(alb, vec3(.19, .17, .15), (1. - smoothstep(.2, 1.6, bord)) * .7);
+  o = vec4(brume(alb * lumiere(n, vM, abri), vM), 1.);
+}`],
+
+  // La chaussée : le bitume, ses lignes, les flaques de lumière des lampadaires, le ciel rasant.
+  chaussee: [`in vec3 aP; in vec4 aI; uniform mat4 uPV;
+out vec3 vM; out vec4 vI;
+void main() { vM = aP; vI = aI; gl_Position = uPV * vec4(aP, 1.); }`, COMMUN + `in vec3 vM; in vec4 vI; out vec4 o;
+void main() {
+  float u = vI.x, s = vI.y, abri = vI.z, e = max(fwidth(u), .02), pres = 1. - smoothstep(.25, 1.2, e);
+  vec3 alb = vec3(.085, .085, .09) * (.85 + .3 * bruit(vec2(u * 3., s * .5)));
+  float axe = (1. - smoothstep(.07, .07 + e, abs(u))) * step(.42, fract(s / 9.));
+  float rives = 1. - smoothstep(.08, .08 + e, abs(abs(u) - 4.05));
+  alb = mix(alb, vec3(.62, .6, .55), clamp(axe + rives, 0., 1.) * pres * .9);
+  vec3 n = vec3(0., 1., 0.), lum = lumiere(n, vM, abri);
+  float rang = floor(s / 30. + .5), cote = mod(rang, 2.) < .5 ? -1. : 1.;      // un lampadaire tous les 30 m, un côté sur deux
+  vec2 dl = vec2(u - cote * 5.1, s - rang * 30.);
+  float flaque = 39.7 / (39.7 + dot(dl, dl)), lt = abs(fract(s / 18.) - .5) * 18.;
+  lum += vec3(1., .62, .28) * (2.2 * flaque * sqrt(flaque) * vI.w * uLampes + .9 * abri * exp(-lt * lt / 30.));
+  vec3 vue = normalize(vM - uCam);
+  vec3 col = alb * lum + fond(reflect(vue, n)) * pow(1. - max(-vue.y, 0.), 5.) * .35 * (1. - abri);
+  o = vec4(brume(col, vM), 1.);
+}`],
+
+  // Les ouvrages : la voûte du tunnel et ses lampes, ses fronts de roche, le béton des ponts, les glissières.
+  ouvrage: [`in vec3 aP; in vec3 aN; in vec3 aI; uniform mat4 uPV;
+out vec3 vM; out vec3 vN; out vec3 vI;
+void main() { vM = aP; vN = aN; vI = aI; gl_Position = uPV * vec4(aP, 1.); }`, COMMUN + `in vec3 vM; in vec3 vN; in vec3 vI; out vec4 o;
+void main() {
+  vec3 n = normalize(vN), vue = normalize(vM - uCam), col;
+  if (!gl_FrontFacing) n = -n;
+  float genre = vI.z;
+  if (genre < .5) {                                                    // la voûte : du béton, une file de lampes au faîte
+    float joint = step(.04, fract(vI.y / 6.)), lampe = (1. - smoothstep(.02, .05, abs(vI.x - .5))) * step(fract(vI.y / 18. + .5), .18);
+    col = vec3(.30, .29, .27) * (.8 + .2 * joint) * lumiere(n, vM, 1.) * (1.2 + .8 * sin(vI.x * 3.1416)) + vec3(2.6, 1.5, .55) * lampe;
+  } else if (genre < 1.5) {
+    float strate = bruit(vec2(vM.y * .45 + bruit(vM.xz * .04) * 5., dot(vM.xz, vec2(.03, .02)))), col_ = bruit(vec2(dot(vM.xz, vec2(.7, .7)) * .22, vM.y * .05));
+    vec3 pierre = mix(vec3(.17, .13, .10), vec3(.40, .31, .22), strate) * (.6 + .8 * col_);
+    col = mix(pierre, vec3(.38, .37, .35), 1. - smoothstep(.0, .12, vI.y)) * (lumiere(n, vM, 0.) + uHorizon * .25);     // un bandeau de béton autour de la bouche
+  }
+  else if (genre < 2.5) col = vec3(.42, .41, .39) * lumiere(n, vM, 0.);
+  else {                                                               // la glissière : du métal, ses poteaux, ses catadioptres
+    float poteau = step(.9, fract(vI.y / 4.));
+    col = mix(vec3(.36, .31, .25), vec3(.22, .19, .16), poteau) * (.7 + .5 * bruit(vec2(vI.y * .9, vI.x * 5.))) * (.75 + .25 * step(.82, vI.x)) * lumiere(n, vM, 0.);
+    col += vec3(1., .9, .7) * poteau * step(.3, vI.x) * step(vI.x, .7) * uPhare.w * 6. / (1. + length(vM - uPhare.xyz) * .05) * smoothstep(.7, .95, dot(normalize(vM - uPhare.xyz), uPhareDir));
+  }
+  o = vec4(brume(col, vM), 1.);
+}`],
+
+  // Les arbres : un pin parasol, un cyprès ou un buisson, de quelques facettes ; à contre-jour, le feuillage s'embrase.
+  arbre: [`in vec3 aT; in vec4 aA; in vec4 aB; uniform mat4 uPV; uniform float uTemps;
+out vec3 vM; out vec3 vN; out vec3 vK;
+void main() {
+  float h = aA.w, r = aB.x, genre = aB.y, niveau = aT.y;
+  // le feuillage : sa pointe basse, ses deux couronnes, sa cime (hauteurs, puis rayons des couronnes)
+  vec4 etages = genre < .5 ? vec4(.56, .66, .82, .97) : genre < 1.5 ? vec4(.03, .2, .55, 1.) : vec4(0., .3, .65, 1.);
+  vec2 rayons = genre < .5 ? vec2(.78, 1.) : genre < 1.5 ? vec2(.9, .8) : vec2(.85, .9);
+  vec3 local, nor;
+  if (niveau < .5) { local = vec3(0., etages.x * h, 0.); nor = vec3(0., -1., 0.); }
+  else if (niveau < 1.5) { local = vec3(aT.x * r * rayons.x, etages.y * h, aT.z * r * rayons.x); nor = vec3(aT.x, -.5, aT.z); }
+  else if (niveau < 2.5) { local = vec3(aT.x * r * rayons.y, etages.z * h, aT.z * r * rayons.y); nor = vec3(aT.x, .45, aT.z); }
+  else if (niveau < 3.5) { local = vec3(0., etages.w * h, 0.); nor = vec3(0., 1., 0.); }
+  else { local = vec3(aT.x * h * .03, (niveau < 4.5 ? -.03 : etages.x + .1) * h, aT.z * h * .03) * (genre < .5 ? 1. : 0.); nor = vec3(aT.x, 0., aT.z); }
+  local.xz += sin(uTemps * 1.3 + aB.z * 40.) * .012 * local.y;
+  vM = aA.xyz + local; vN = nor;
+  vK = vec3(genre, aB.z, niveau > 3.5 ? 1. : 0.);
+  gl_Position = uPV * vec4(vM, 1.);
+}`, COMMUN + `in vec3 vM; in vec3 vN; in vec3 vK; out vec4 o;
+void main() {
+  vec3 n = normalize(vN), vue = normalize(vM - uCam);
+  vec3 feuillage = (vK.x < .5 ? vec3(.05, .1, .035) : vK.x < 1.5 ? vec3(.028, .06, .032) : vec3(.1, .12, .05)) * (.7 + .6 * vK.y) * (.8 + .4 * bruit(vM.xz * .9 + vM.y));
+  vec3 alb = mix(feuillage, vec3(.16, .11, .08), vK.z);
+  vec3 col = alb * lumiere(n, vM, 0.) + alb * uSoleilK * pow(max(dot(vue, uSoleil), 0.), 3.) * 1.4 * (1. - vK.z);
+  o = vec4(brume(col, vM), 1.);
+}`],
+
+  // Les boîtes : maisons et toits, hangars, béton, le ferry, le phare, les voitures de la circulation.
+  boite: [`in vec3 aPos; in vec3 aNor; in vec4 aA; in vec4 aB; in vec4 aC; uniform mat4 uPV;
+out vec3 vM; out vec3 vN; out vec2 vUV; flat out vec2 vDim; flat out vec3 vI; flat out vec3 vK;
+void main() {
+  float c = cos(aA.w), s = sin(aA.w), genre = aB.w;
+  vec3 loc = vec3((aPos.x - .5) * aB.x, aPos.y * aB.y, (aPos.z - .5) * aB.z), nor = aNor;
+  if (abs(genre - 1.) < .5) {                                          // un toit : le haut se pince en faîtage
+    if (aPos.y > .5) loc.x = 0.;
+    if (abs(aNor.x) > .5) nor = normalize(vec3(aNor.x * aB.y, aB.x * .5, 0.));
+  }
+  float face = abs(aNor.x) > .5 ? (aNor.x > 0. ? 0. : 1.) : abs(aNor.z) > .5 ? (aNor.z > 0. ? 2. : 3.) : 4.;
+  vUV = face < 1.5 ? vec2(aPos.z * aB.z, aPos.y * aB.y) : face < 3.5 ? vec2(aPos.x * aB.x, aPos.y * aB.y) : vec2(aPos.x * aB.x, aPos.z * aB.z);
+  vDim = face < 1.5 ? vec2(aB.z, aB.y) : face < 3.5 ? vec2(aB.x, aB.y) : vec2(aB.x, aB.z);
+  vM = vec3(aA.x + c * loc.x - s * loc.z, aA.y + loc.y, aA.z + s * loc.x + c * loc.z);
+  vN = vec3(c * nor.x - s * nor.z, nor.y, s * nor.x + c * nor.z);
+  vI = vec3(aC.x, genre, face); vK = aC.yzw;
+  gl_Position = uPV * vec4(vM, 1.);
+}`, COMMUN + `in vec3 vM; in vec3 vN; in vec2 vUV; flat in vec2 vDim; flat in vec3 vI; flat in vec3 vK; out vec4 o;
+// Des fenêtres sur un mur : \`pas\` (travée, étage), \`marge\` de mur autour de chacune ; rend la vitre (x), si elle est allumée (y), un hasard (z).
+vec3 fenetres(vec2 pas, vec2 marge, float allumees) {
+  float nb = max(1., floor(vDim.x / pas.x + .5));
+  vec2 c = vec2(vUV.x * nb / vDim.x, vUV.y / pas.y), id = floor(c), f = fract(c), px = fwidth(c);
+  vec2 b = smoothstep(marge - px, marge + px, f) * smoothstep(marge - px, marge + px, 1. - f);
+  uint k = uint(int(vI.x * 65535.)) * 0x9E3779B1U ^ uint(int(id.x) + 911) * 0x85EBCA6BU ^ uint(int(id.y) + 3571) * 0xC2B2AE35U ^ uint(int(vI.z) + 1) * 0x27D4EB2FU;
+  return vec3(b.x * b.y * step(id.y + 1., vDim.y / pas.y + .3), step(hf(k), allumees), hf(k ^ 0x68E31DA4U));
+}
+void main() {
+  vec3 n = normalize(vN), vue = normalize(vM - uCam), r = reflect(vue, n), lum = lumiere(n, vM, 0.), col;
+  float genre = vI.y, toit = step(3.5, vI.z), fresnel = .04 + .96 * pow(1. - max(dot(-vue, n), 0.), 5.);
+  vec3 chaud = vec3(1., .66, .32);
+  if (genre < .5) {                                                    // une maison : son enduit, ses volets, ses fenêtres qui s'allument le soir
+    vec3 w = fenetres(vec2(2.9, 3.), vec2(.34, .26), uNuit * .78 + .04) * (1. - toit), v = fenetres(vec2(2.9, 3.), vec2(.2, .26), 0.) * (1. - toit);
+    vec3 volet = mix(vec3(.16, .26, .2), vec3(.2, .26, .36), step(.5, hf(uint(int(vI.x * 65535.)))));
+    col = mix(vK * (.9 + .2 * bruit(vM.xz * .7 + vM.y * .5)), volet, (v.x - w.x) * .9) * lum * (1. - w.x * .85) * mix(1., .8, toit);
+    col += w.x * mix(fond(r) * fresnel * 1.4 + vec3(.01, .012, .016), chaud * mix(.5, 2.2, w.z * w.z), w.y);
+  } else if (genre < 1.5) col = vK * (.75 + .25 * sin(vUV.y * 9.)) * (.8 + .4 * bruit(vM.xz * .8)) * lum;      // un toit de tuiles
+  else if (genre < 2.5) {                                              // un hangar du port
+    vec3 w = fenetres(vec2(5., 8.), vec2(.2, .42), uNuit * .5) * (1. - toit);
+    col = vK * (.8 + .2 * sin(vUV.x * 5.)) * lum * (1. - w.x * .8) + w.x * w.y * vec3(.8, .9, 1.) * 1.2;
+  } else if (genre < 3.5) col = vK * lum;                              // du béton, un poteau, un rocher
+  else if (genre < 4.5) {                                              // la coque du ferry : sa ligne de flottaison, ses hublots
+    vec3 w = fenetres(vec2(2.4, 7.4), vec2(.3, .44), 1.) * (1. - toit);
+    col = mix(vec3(.05, .09, .16), vK, smoothstep(2.3, 2.5, vUV.y)) * lum * (1. - w.x) + w.x * chaud * (.6 + 1.6 * uNuit) + fond(r) * fresnel * .3;
+  } else if (genre < 5.5) {                                            // les ponts du ferry : de longues baies allumées
+    vec3 w = fenetres(vec2(1.6, 3.2), vec2(.12, .28), .92) * (1. - toit);
+    col = vK * lum * (1. - w.x * .9) + w.x * w.y * mix(chaud, vec3(1., .9, .75), w.z) * (.5 + 1.9 * uNuit);
+  } else if (genre < 6.5) col = mix(vK, vec3(.04), step(vDim.y * .72, vUV.y) * (1. - toit)) * lum;             // la cheminée
+  else if (genre < 7.5) col = vK * lum + fond(r) * fresnel * .15;                                               // le fût du phare
+  else if (genre < 8.5) col = vK * (.4 + 7. * uNuit);                                                           // sa lanterne
+  else if (genre < 9.5) col = vK * lum + fond(r) * fresnel * .8 + uSoleilK * pow(max(dot(r, uSoleil), 0.), 60.) * .6;   // une carrosserie
+  else if (genre < 10.5) col = vec3(.012, .016, .022) * lum + fond(r) * (fresnel * 1.1 + .05);                  // un habitacle
+  else col = vK * (step(.5, fract(vUV.x / 1.3)) * .85 + .15) * (1.3 + 2.4 * uNuit) * (1. - toit * .8);          // une banderole
+  o = vec4(brume(col, vM), 1.);
+}`],
+
+  // La voiture de Reachy : une laque de porcelaine où passe le ciel, des feux qui s'allument.
+  auto: [`in vec3 aP; in vec3 aN; in vec3 aK; in float aL; uniform mat4 uPV, uModele;
+out vec3 vM; out vec3 vN; out vec3 vK; out float vL;
+void main() { vec4 m = uModele * vec4(aP, 1.); vM = m.xyz; vN = mat3(uModele) * aN; vK = aK; vL = aL; gl_Position = uPV * m; }`, COMMUN + `in vec3 vM; in vec3 vN; in vec3 vK; in float vL; out vec4 o;
+uniform float uFrein, uAbri;
+void main() {
+  vec3 n = normalize(vN) * (gl_FrontFacing ? 1. : -1.), vue = normalize(vM - uCam), r = reflect(vue, n);
+  float fresnel = .05 + .95 * pow(1. - max(dot(-vue, n), 0.), 5.), verre = step(vK.r + vK.g + vK.b, .12);
+  vec3 col = vK * lumiere(n, vM, uAbri) + (fond(r) * (1. - uAbri) + vec3(1., .62, .28) * .3 * uAbri) * (fresnel * mix(.75, 1.2, verre) + .04)
+    + uSoleilK * pow(max(dot(r, uSoleil), 0.), 90.) * .9 * (1. - uAbri);
+  if (vL > .5) col = vL < 1.5 ? vec3(1., .08, .04) * (.5 + 1.2 * uNuit + 4.5 * uFrein) : vec3(1., .94, .78) * (.4 + 5. * uPhare.w);
+  o = vec4(brume(col, vM), 1.);
+}`],
+
+  // Les lumières : lampadaires, feux des voitures, guirlandes du ferry. Des points qui gardent leur lumière en rapetissant.
+  lumiere: [`in vec4 aL; in vec4 aC;
+uniform mat4 uPV; uniform vec3 uCam; uniform float uEchelle, uLampes;
+out vec3 vC;
+void main() {
+  vec4 q = uPV * vec4(aL.xyz, 1.);
+  float d = length(aL.xyz - uCam), px = aL.w * uEchelle / max(q.w, .1), t = max(px, 2.);
+  vC = aC.rgb * (px / t) * (px / t) * (aC.w > .5 ? uLampes : 1.) * exp(-d / 2600.);
+  gl_Position = aL.w > 0. ? q : vec4(2., 2., 2., 1.);
+  gl_PointSize = min(t, 110.);
+}`, `precision highp float; in vec3 vC; out vec4 o;
+void main() { vec2 c = gl_PointCoord * 2. - 1.; float r = dot(c, c); o = vec4(vC * exp(-r * 4.5) * (1. - smoothstep(.7, 1., r)), 1.); }`],
+
+  // Ce qui luit sans surface : le faisceau du phare, la flamme du turbo, la fumée des pneus, les étincelles.
+  lueur: [`in vec3 aP; in vec4 aK; uniform mat4 uPV; uniform vec3 uCam;
+out vec4 vK;
+void main() { vK = vec4(aK.rgb, aK.a * exp(-length(aP - uCam) / 5000.)); gl_Position = uPV * vec4(aP, 1.); }`,
+  `precision highp float; in vec4 vK; out vec4 o; void main() { o = vec4(vK.rgb * vK.a, 1.); }`],
+
+  // Le halo des lumières : ce qui brille déborde.
+  seuil: [VS_PLEIN, `precision highp float; in vec2 vUV; out vec4 o; uniform sampler2D uSource; uniform vec2 uPas;
+void main() {
+  vec3 c = (texture(uSource, vUV + uPas * vec2(-.5, -.5)).rgb + texture(uSource, vUV + uPas * vec2(.5, -.5)).rgb
+    + texture(uSource, vUV + uPas * vec2(-.5, .5)).rgb + texture(uSource, vUV + uPas * vec2(.5, .5)).rgb) * .25;
+  c = min(c, vec3(28.));
+  o = vec4(c * smoothstep(1.1, 3.2, max(c.r, max(c.g, c.b))), 1.);
+}`],
+  flou: [VS_PLEIN, `precision highp float; in vec2 vUV; out vec4 o; uniform sampler2D uSource; uniform vec2 uPas; uniform float uGain;
+void main() {
+  o = vec4((texture(uSource, vUV + uPas * vec2(-1., -1.)).rgb + texture(uSource, vUV + uPas * vec2(1., -1.)).rgb
+    + texture(uSource, vUV + uPas * vec2(-1., 1.)).rgb + texture(uSource, vUV + uPas * vec2(1., 1.)).rgb) * .25 * uGain, 1.);
+}`],
+
+  // L'image finale : le halo, la vitesse qui étire les bords, la courbe du film, l'étalonnage, le grain.
+  final: [VS_PLEIN, `precision highp float; in vec2 vUV; out vec4 o;
+uniform sampler2D uScene, uHalo; uniform float uFondu, uElan, uTemps, uPose;
+float h1(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+vec3 film(vec3 x) { return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
+void main() {
+  vec2 c = vUV - .5; float r2 = dot(c, c);
+  vec3 col = vec3(0.);
+  float de = h1(gl_FragCoord.xy + uTemps);
+  for (int i = 0; i < 6; i++) {                                        // à pleine vitesse, les bords filent
+    vec2 uv = vUV - c * r2 * uElan * .028 * (float(i) + de);
+    vec2 ecart = c * r2 * .008;
+    col += vec3(texture(uScene, uv - ecart).r, texture(uScene, uv).g, texture(uScene, uv + ecart).b);
+  }
+  col = col / 6. + texture(uHalo, vUV).rgb * .3;
+  col = film(col * uPose);
+  float l = dot(col, vec3(.2126, .7152, .0722));
+  col = mix(vec3(l), col, 1.06) * mix(vec3(.96, 1., 1.05), vec3(1.04, 1., .95), smoothstep(.08, .7, l));
+  col *= 1. - r2 * .7;
+  col = pow(max(col, 0.), vec3(1. / 2.2)) + (h1(gl_FragCoord.xy + fract(uTemps) * 61.) - .5) * .022;
+  o = vec4(col * uFondu, 1.);
+}`],
+};
+
+/** Ce qui luit se bâtit à chaque image dans un seul tableau : sept nombres par sommet (x, y, z, rouge, vert, bleu, force). */
+const lueurs = { v: new Float32Array(9000 * 7), n: 0 };
+function sommet(p, k, force) {
+  const v = lueurs.v, i = lueurs.n * 7;
+  if (i + 7 > v.length) return;
+  v[i] = p.x; v[i + 1] = p.y; v[i + 2] = p.z; v[i + 3] = k[0]; v[i + 4] = k[1]; v[i + 5] = k[2]; v[i + 6] = force;
+  lueurs.n += 1;
+}
+function quadrilatere(a, b, c, d, k, fa, fb, fc, fd) {
+  sommet(a, k, fa); sommet(b, k, fb); sommet(c, k, fc); sommet(a, k, fa); sommet(c, k, fc); sommet(d, k, fd);
+}
+/** Un ruban qui fait face à l'œil, le long de points ; `largeur(i)` et `force(i)` le long du ruban. */
+function ruban(points, largeur, k, force, oeil) {
+  let avant = null;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i], q = points[Math.min(i + 1, points.length - 1)], o = points[Math.max(i - 1, 0)];
+    const tx = q.x - o.x, ty = q.y - o.y, tz = q.z - o.z, ex = oeil.x - p.x, ey = oeil.y - p.y, ez = oeil.z - p.z;
+    let cx = ty * ez - tz * ey, cy = tz * ex - tx * ez, cz = tx * ey - ty * ex;
+    const l = (Math.hypot(cx, cy, cz) || 1) / largeur(i);
+    cx /= l; cy /= l; cz /= l;
+    const bords = [{ x: p.x - cx, y: p.y - cy, z: p.z - cz }, p, { x: p.x + cx, y: p.y + cy, z: p.z + cz }, force(i)];
+    if (avant) {
+      quadrilatere(avant[0], avant[1], bords[1], bords[0], k, 0, avant[3], bords[3], 0);
+      quadrilatere(avant[1], avant[2], bords[2], bords[1], k, avant[3], 0, 0, bords[3]);
+    }
+    avant = bords;
+  }
+}
+/** Une bouffée ronde, face à l'œil : la fumée, la poussière, une étincelle. */
+function bouffee(p, rayon, k, force, r) {
+  const a = { x: r.d.x * rayon, y: r.d.y * rayon, z: r.d.z * rayon }, b = { x: r.h.x * rayon, y: r.h.y * rayon, z: r.h.z * rayon };
+  for (let i = 0; i < 6; i++) {
+    const t0 = i * TAU / 6, t1 = (i + 1) * TAU / 6, bord = (t) => ({ x: p.x + a.x * Math.cos(t) + b.x * Math.sin(t), y: p.y + a.y * Math.cos(t) + b.y * Math.sin(t), z: p.z + a.z * Math.cos(t) + b.z * Math.sin(t) });
+    sommet(p, k, force); sommet(bord(t0), k, 0); sommet(bord(t1), k, 0);
+  }
+}
+
+function creerRendu(gl) {
+  const flottant = gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float');
+  const FORMAT = flottant ? gl.RGBA16F : gl.RGBA8, TYPE = flottant ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+  const lissages = Array.from(gl.getInternalformatParameter(gl.RENDERBUFFER, FORMAT, gl.SAMPLES) || []);
+  const ECHANTILLONS = lissages.includes(4) ? 4 : lissages.includes(2) ? 2 : 0;
+  function programme(nom, attributs) {
+    const p = gl.createProgram();
+    [gl.VERTEX_SHADER, gl.FRAGMENT_SHADER].forEach((type, i) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, '#version 300 es\n' + SOURCES[nom][i]);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('nuanceur « ' + nom + ' » : ' + gl.getShaderInfoLog(s));
+      gl.attachShader(p, s);
+    });
+    attributs.forEach((a, i) => gl.bindAttribLocation(p, i, a));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('programme « ' + nom + ' » : ' + gl.getProgramInfoLog(p));
+    const u = {};
+    for (let i = 0; i < gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i++) { const info = gl.getActiveUniform(p, i); u[info.name] = gl.getUniformLocation(p, info.name); }
+    return { p, u };
+  }
+  const P = {
+    ciel: programme('ciel', []), mer: programme('mer', ['aQ']), relief: programme('relief', ['aP', 'aN', 'aI']), chaussee: programme('chaussee', ['aP', 'aI']),
+    ouvrage: programme('ouvrage', ['aP', 'aN', 'aI']), arbre: programme('arbre', ['aT', 'aA', 'aB']), boite: programme('boite', ['aPos', 'aNor', 'aA', 'aB', 'aC']),
+    auto: programme('auto', ['aP', 'aN', 'aK', 'aL']), lumiere: programme('lumiere', ['aL', 'aC']), lueur: programme('lueur', ['aP', 'aK']),
+    seuil: programme('seuil', []), flou: programme('flou', []), final: programme('final', []),
+  };
+  /** Les réglages d'un programme : un nombre, un vecteur ou une matrice par nom ; ceux qu'il n'a pas sont passés. */
+  function regler(prog, valeurs) {
+    gl.useProgram(prog.p);
+    for (const nom in valeurs) {
+      const u = prog.u[nom], v = valeurs[nom];
+      if (u === undefined) continue;
+      if (typeof v === 'number') gl.uniform1f(u, v);
+      else if (v.length === 2) gl.uniform2fv(u, v);
+      else if (v.length === 3) gl.uniform3fv(u, v);
+      else if (v.length === 4) gl.uniform4fv(u, v);
+      else gl.uniformMatrix4fv(u, false, v);
+    }
+  }
+  gl.useProgram(P.seuil.p); gl.uniform1i(P.seuil.u.uSource, 0);
+  gl.useProgram(P.flou.p); gl.uniform1i(P.flou.u.uSource, 0);
+  gl.useProgram(P.final.p); gl.uniform1i(P.final.u.uScene, 0); gl.uniform1i(P.final.u.uHalo, 1);
+
+  // --- Les formes, bâties une fois
+  const tampon = (donnees, usage) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, donnees, usage || gl.STATIC_DRAW); return b; };
+  const attribut = (i, taille, pas, depart, parInstance) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, taille, gl.FLOAT, false, pas * 4, depart * 4); if (parInstance) gl.vertexAttribDivisor(i, 1); };
+  const vao = (remplir) => { const v = gl.createVertexArray(); gl.bindVertexArray(v); remplir(); return v; };
+  const p = PARCOURS, relief = batirRelief(p), chaussee = batirChaussee(p), ouvrages = batirOuvrages(p), arbres = planter(p), bati = construire(p), autoSommets = maillageAuto();
+  const vaoRelief = vao(() => {
+    tampon(relief.v); attribut(0, 3, 9, 0); attribut(1, 3, 9, 3); attribut(2, 3, 9, 6);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, relief.indices, gl.STATIC_DRAW);
+  });
+  const vaoChaussee = vao(() => { tampon(chaussee); attribut(0, 3, 7, 0); attribut(1, 4, 7, 3); });
+  const vaoOuvrages = vao(() => { tampon(ouvrages); attribut(0, 3, 9, 0); attribut(1, 3, 9, 3); attribut(2, 3, 9, 6); });
+  const gabarit = [];                                                   // un arbre : un feuillage à huit pans et deux couronnes, un tronc à trois pans
+  for (let k = 0; k < 8; k++) {
+    const a = [Math.cos(k * TAU / 8), Math.sin(k * TAU / 8)], b = [Math.cos((k + 1) * TAU / 8), Math.sin((k + 1) * TAU / 8)];
+    gabarit.push(0, 0, 0, b[0], 1, b[1], a[0], 1, a[1], a[0], 1, a[1], b[0], 1, b[1], b[0], 2, b[1], a[0], 1, a[1], b[0], 2, b[1], a[0], 2, a[1], a[0], 2, a[1], b[0], 2, b[1], 0, 3, 0);
+  }
+  for (let k = 0; k < 3; k++) {
+    const a = [Math.cos(k * TAU / 3), Math.sin(k * TAU / 3)], b = [Math.cos((k + 1) * TAU / 3), Math.sin((k + 1) * TAU / 3)];
+    gabarit.push(a[0], 4, a[1], b[0], 4, b[1], b[0], 5, b[1], a[0], 4, a[1], b[0], 5, b[1], a[0], 5, a[1]);
+  }
+  const vaoArbres = vao(() => { tampon(new Float32Array(gabarit)); attribut(0, 3, 3, 0); tampon(arbres); attribut(1, 4, 8, 0, true); attribut(2, 4, 8, 4, true); });
+  const cube = [];
+  for (const [n, coins] of [[[1, 0, 0], [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]]], [[-1, 0, 0], [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]]],
+    [[0, 0, 1], [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]]], [[0, 0, -1], [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]]], [[0, 1, 0], [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]]]]) {
+    for (const i of [0, 1, 2, 0, 2, 3]) cube.push(...coins[i], ...n);
+  }
+  const boites = (donnees, usage) => { tampon(new Float32Array(cube)); attribut(0, 3, 6, 0); attribut(1, 3, 6, 3); const b = tampon(donnees, usage); attribut(2, 4, 12, 0, true); attribut(3, 4, 12, 4, true); attribut(4, 4, 12, 8, true); return b; };
+  const vaoBati = vao(() => boites(bati.boites));
+  const MOBILES = 80, mobiles = new Float32Array(MOBILES * 12), FEUX = 200, feux = new Float32Array(FEUX * 8);
+  let tamponMobiles, tamponFeux, tamponLueurs;
+  const vaoMobiles = vao(() => { tamponMobiles = boites(mobiles, gl.DYNAMIC_DRAW); });
+  const vaoLampes = vao(() => { tampon(bati.lumieres); attribut(0, 4, 8, 0); attribut(1, 4, 8, 4); });
+  const vaoFeux = vao(() => { tamponFeux = tampon(feux, gl.DYNAMIC_DRAW); attribut(0, 4, 8, 0); attribut(1, 4, 8, 4); });
+  const vaoAuto = vao(() => { tampon(autoSommets); attribut(0, 3, 10, 0); attribut(1, 3, 10, 3); attribut(2, 3, 10, 6); attribut(3, 1, 10, 9); });
+  const vaoPlan = vao(() => { tampon(new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1])); attribut(0, 2, 2, 0); });
+  const vaoLueurs = vao(() => { tamponLueurs = tampon(lueurs.v, gl.DYNAMIC_DRAW); attribut(0, 3, 7, 0); attribut(1, 4, 7, 3); });
+  const vaoVide = gl.createVertexArray();
+  gl.bindVertexArray(null);
+
+  // --- Les images intermédiaires : la scène (lissée), les étages du halo.
+  let cibles = null;
+  const image = (l, h) => {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, FORMAT, l, h, 0, gl.RGBA, TYPE, null);
+    for (const [quoi, valeur] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, quoi, valeur);
+    return t;
+  };
+  const cible = (l, h, profondeur) => {
+    const c = { l, h, fbo: gl.createFramebuffer(), tex: image(l, h), tampons: [] };
+    gl.bindFramebuffer(gl.FRAMEBUFFER, c.fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, c.tex, 0);
+    if (profondeur) {
+      const d = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, d); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, l, h);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, d);
+      c.tampons.push(d);
+    }
+    return c;
+  };
+  function tailler(l, h) {
+    if (cibles && cibles.l === l && cibles.h === h) return;
+    if (cibles) for (const c of [cibles.scene, cibles.lisse, ...cibles.halo]) { if (!c) continue; gl.deleteFramebuffer(c.fbo); if (c.tex) gl.deleteTexture(c.tex); c.tampons.forEach((t) => gl.deleteRenderbuffer(t)); }
+    cibles = { l, h, scene: cible(l, h, !ECHANTILLONS), lisse: null, halo: [] };
+    if (ECHANTILLONS) {
+      const c = { l, h, fbo: gl.createFramebuffer(), tex: null, tampons: [gl.createRenderbuffer(), gl.createRenderbuffer()] };
+      gl.bindFramebuffer(gl.FRAMEBUFFER, c.fbo);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, c.tampons[0]); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, ECHANTILLONS, FORMAT, l, h);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, c.tampons[0]);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, c.tampons[1]); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, ECHANTILLONS, gl.DEPTH_COMPONENT24, l, h);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, c.tampons[1]);
+      cibles.lisse = c;
+    }
+    for (let i = 1; i <= 5; i++) cibles.halo.push(cible(Math.max(2, l >> i), Math.max(2, h >> i), false));
+  }
+
+  /** Une image. `monde` : la partie qu'on voit, l'heure, les boîtes et les feux qui bougent ; `ecran` : la taille de la toile, la finesse. */
+  function dessiner(monde, ecran) {
+    const echelle = Math.min(ecran.finesse, Math.sqrt(PIXELS_MAX / (ecran.l * ecran.h)));
+    const l = Math.max(2, Math.round(ecran.l * echelle)), h = Math.max(2, Math.round(ecran.h * echelle)), aspect = l / h;
+    tailler(l, h);
+    const oeil = camera.oeil, r = camera.regard, c = monde.auto, ici = placer(p, c), lueur = soir(monde.soleil);
+    const champ = aspect >= 1.2 ? camera.champ : 2 * Math.atan(Math.tan(camera.champ / 2) * 1.2 / aspect);
+    const pv = fois(perspective(champ, aspect, 0.5, 45000), vueDe(oeil, r)), tan = Math.tan(champ / 2);
+    const nez = axes(c.lacet, Math.atan(ici.pente), 0).a;
+    const communs = { uCam: [oeil.x, oeil.y, oeil.z], uTemps: monde.temps % 3600, uPV: pv, uEchelle: h / (2 * tan),
+      uSoleil: lueur.uSoleil, uSoleilK: lueur.uSoleilK, uCiel: lueur.uCiel, uHorizon: lueur.uHorizon, uLueur: lueur.uLueur, uSol: lueur.uSol, uLuneK: lueur.uLuneK,
+      uNuit: lueur.uNuit, uLampes: lueur.uLampes, uPhare: [ici.x + nez.x * 1.6, ici.y + 0.6, ici.z + nez.z * 1.6, Math.max(lueur.phares, monde.abri)], uPhareDir: [nez.x, nez.y - 0.07, nez.z] };
+    gl.bindBuffer(gl.ARRAY_BUFFER, tamponMobiles); gl.bufferSubData(gl.ARRAY_BUFFER, 0, mobiles);
+    gl.bindBuffer(gl.ARRAY_BUFFER, tamponFeux); gl.bufferSubData(gl.ARRAY_BUFFER, 0, feux);
+    if (lueurs.n) { gl.bindBuffer(gl.ARRAY_BUFFER, tamponLueurs); gl.bufferSubData(gl.ARRAY_BUFFER, 0, lueurs.v, 0, lueurs.n * 7); }
+    // la voiture : elle penche dans les virages, pique au freinage
+    const caisse = axes(c.lacet, Math.atan(ici.pente) - 0.03 * c.frein + 0.02 * c.turbo, borne((c.lacet - c.route) * 0.5 + monde.roulis, -0.12, 0.12));
+    const modele = new Float32Array([caisse.d.x, caisse.d.y, caisse.d.z, 0, caisse.h.x, caisse.h.y, caisse.h.z, 0, -caisse.a.x, -caisse.a.y, -caisse.a.z, 0, ici.x, ici.y + 0.02, ici.z, 1]);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, (cibles.lisse || cibles.scene).fbo); gl.viewport(0, 0, l, h);
+    gl.depthMask(false); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
+    regler(P.ciel, { ...communs, uTan: [tan * aspect, tan], uDroite: [r.d.x, r.d.y, r.d.z], uHaut: [r.h.x, r.h.y, r.h.z], uAvant: [r.a.x, r.a.y, r.a.z] });
+    gl.bindVertexArray(vaoVide); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.depthMask(true); gl.enable(gl.DEPTH_TEST); gl.clear(gl.DEPTH_BUFFER_BIT);
+    regler(P.mer, { ...communs, uPlan: [oeil.x, 0, oeil.z] });
+    gl.bindVertexArray(vaoPlan); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    regler(P.relief, communs);
+    gl.bindVertexArray(vaoRelief); gl.drawElements(gl.TRIANGLES, relief.indices.length, gl.UNSIGNED_INT, 0);
+    regler(P.chaussee, communs);
+    gl.bindVertexArray(vaoChaussee); gl.drawArrays(gl.TRIANGLE_STRIP, 0, chaussee.length / 7);
+    regler(P.ouvrage, communs);
+    gl.bindVertexArray(vaoOuvrages); gl.drawArrays(gl.TRIANGLES, 0, ouvrages.length / 9);
+    regler(P.arbre, communs);
+    gl.bindVertexArray(vaoArbres); gl.drawArraysInstanced(gl.TRIANGLES, 0, gabarit.length / 3, arbres.length / 8);
+    gl.enable(gl.CULL_FACE);
+    regler(P.boite, communs);
+    gl.bindVertexArray(vaoBati); gl.drawArraysInstanced(gl.TRIANGLES, 0, 30, bati.boites.length / 12);
+    gl.bindVertexArray(vaoMobiles); gl.drawArraysInstanced(gl.TRIANGLES, 0, 30, monde.mobiles);
+    gl.disable(gl.CULL_FACE);
+    regler(P.auto, { ...communs, uModele: modele, uFrein: c.frein, uAbri: monde.abri });
+    gl.bindVertexArray(vaoAuto); gl.drawArrays(gl.TRIANGLES, 0, autoSommets.length / 10);
+    gl.depthMask(false); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    regler(P.lumiere, communs);
+    gl.bindVertexArray(vaoLampes); gl.drawArrays(gl.POINTS, 0, bati.lumieres.length / 8);
+    gl.bindVertexArray(vaoFeux); gl.drawArrays(gl.POINTS, 0, monde.feux);
+    regler(P.lueur, communs);
+    gl.bindVertexArray(vaoLueurs); gl.drawArrays(gl.TRIANGLES, 0, lueurs.n);
+    gl.disable(gl.BLEND); gl.depthMask(true);
+    if (cibles.lisse) {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, cibles.lisse.fbo); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, cibles.scene.fbo);
+      gl.blitFramebuffer(0, 0, l, h, 0, 0, l, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    }
+    // Le halo : ce qui brille, rapetissé cinq fois, puis regrossi en s'ajoutant.
+    gl.disable(gl.DEPTH_TEST); gl.bindVertexArray(vaoVide); gl.activeTexture(gl.TEXTURE0);
+    let source = cibles.scene;
+    cibles.halo.forEach((etage, i) => {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, etage.fbo); gl.viewport(0, 0, etage.l, etage.h);
+      gl.bindTexture(gl.TEXTURE_2D, source.tex);
+      regler(i ? P.flou : P.seuil, { uPas: [1 / source.l, 1 / source.h], uGain: 1 });
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      source = etage;
+    });
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    for (let i = cibles.halo.length - 1; i > 0; i--) {
+      const vers = cibles.halo[i - 1], de = cibles.halo[i];
+      gl.bindFramebuffer(gl.FRAMEBUFFER, vers.fbo); gl.viewport(0, 0, vers.l, vers.h);
+      gl.bindTexture(gl.TEXTURE_2D, de.tex);
+      regler(P.flou, { uPas: [0.5 / de.l, 0.5 / de.h], uGain: 0.85 });
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    gl.disable(gl.BLEND);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, ecran.l, ecran.h);
+    gl.bindTexture(gl.TEXTURE_2D, cibles.scene.tex);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, cibles.halo[0].tex); gl.activeTexture(gl.TEXTURE0);
+    regler(P.final, { uFondu: monde.fondu, uElan: c.turbo, uTemps: monde.temps % 60, uPose: lueur.pose });
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    return pv;
+  }
+  return { dessiner, mobiles, feux, MOBILES, FEUX, phare: bati.phare };
+}
+
+// ===== Le son : le moteur, le vent, les pneus, le turbo, la mer, les grillons du soir =====
+let ambiance = null;
+function basculerSon() {
+  $('btn-son').textContent = reachy.son.basculer() ? 'Son coupé' : 'Son';
+}
+/** La fréquence d'un degré de la gamme : 5 degrés par octave. */
+function hauteur(degre) {
+  const octave = Math.floor(degre / GAMME.length), rang = ((degre % GAMME.length) + GAMME.length) % GAMME.length;
+  return TONIQUE * Math.pow(2, octave + GAMME[rang] / 12);
+}
+function lancerAmbiance() {
+  const ctx = reachy.son.demarrer();
+  if (!ctx || ambiance) return;
+  const bus = ctx.createGain(), tampon = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), grains = tampon.getChannelData(0);
+  for (let i = 0; i < grains.length; i++) grains[i] = Math.random() * 2 - 1;
+  bus.gain.value = 0;
+  bus.connect(reachy.son.sortie);
+  const souffle = (type, frequence, q) => {
+    const source = ctx.createBufferSource(), filtre = ctx.createBiquadFilter(), gain = ctx.createGain();
+    source.buffer = tampon; source.loop = true;
+    filtre.type = type; filtre.frequency.value = frequence; filtre.Q.value = q;
+    gain.gain.value = 0;
+    source.connect(filtre).connect(gain).connect(bus); source.start();
+    return { filtre, gain };
+  };
+  const passe = ctx.createBiquadFilter(), grave = ctx.createGain();
+  passe.type = 'lowpass'; passe.frequency.value = 420; grave.gain.value = 0.05;
+  passe.connect(grave).connect(bus);
+  const moteur = [1, 1.012, 2.003, 0.5].map((rapport) => { const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 48 * rapport; osc.connect(passe); osc.start(); return { osc, rapport }; });
+  const chant = ctx.createOscillator(), battement = ctx.createOscillator(), profondeur = ctx.createGain(), grillons = ctx.createGain();   // les grillons : un son aigu qui bat
+  chant.frequency.value = 4300; battement.type = 'square'; battement.frequency.value = 17; profondeur.gain.value = 0; grillons.gain.value = 0;
+  battement.connect(profondeur).connect(grillons.gain); chant.connect(grillons).connect(bus); chant.start(); battement.start();
+  ambiance = { ctx, bus, tampon, moteur, passe, grave, profondeur, vent: souffle('bandpass', 500, 0.6), pneus: souffle('bandpass', 1500, 4), turbo: souffle('lowpass', 500, 0.4), mer: souffle('lowpass', 380, 0.3) };
+}
+/** `niveau` de 0 à 1 ; la voiture ; la part de mer, de grillons et de tunnel autour d'elle. */
+function reglerAmbiance(niveau, c, mer, grillons, abri) {
+  const a = ambiance;
+  if (!a) return;
+  const t = a.ctx.currentTime, allure = borne(c.v / V_NITRO, 0, 1.2), regime = 0.75 + 1.9 * ((allure * 3.2) % 1) * 0.35 + allure * 1.1;   // elle passe ses rapports
+  a.bus.gain.setTargetAtTime(niveau, t, 0.3);
+  a.moteur.forEach((m) => m.osc.frequency.setTargetAtTime(48 * m.rapport * regime, t, 0.08));
+  a.passe.frequency.setTargetAtTime(320 + 900 * allure + 500 * abri, t, 0.2);
+  a.grave.gain.setTargetAtTime(0.04 + 0.03 * c.turbo + 0.035 * abri, t, 0.2);
+  a.vent.filtre.frequency.setTargetAtTime(350 + 900 * allure, t, 0.2);
+  a.vent.gain.gain.setTargetAtTime(0.11 * allure * allure * (1 - 0.5 * abri), t, 0.2);
+  a.pneus.gain.gain.setTargetAtTime(0.09 * c.glisse + 0.05 * c.hors + 0.1 * c.frotte, t, 0.06);
+  a.turbo.filtre.frequency.setTargetAtTime(420 + 1100 * c.turbo, t, 0.2);
+  a.turbo.gain.gain.setTargetAtTime(0.17 * c.turbo, t, 0.12);
+  a.mer.gain.gain.setTargetAtTime(0.05 * mer * (1 - abri) * (0.6 + 0.4 * Math.sin(t * 0.7)), t, 0.4);
+  a.profondeur.gain.setTargetAtTime(0.006 * grillons * (1 - abri), t, 0.6);
+}
+/** Un coup de bruit filtré : un choc, une voiture croisée. */
+function souffler(force, secondes, aigu, grave) {
+  const a = ambiance;
+  if (!a) return;
+  const t = a.ctx.currentTime, source = a.ctx.createBufferSource(), filtre = a.ctx.createBiquadFilter(), gain = a.ctx.createGain();
+  source.buffer = a.tampon; source.loop = true;
+  filtre.type = 'lowpass'; filtre.frequency.setValueAtTime(aigu, t); filtre.frequency.exponentialRampToValueAtTime(grave, t + secondes);
+  gain.gain.setValueAtTime(0.0001, t); gain.gain.exponentialRampToValueAtTime(force, t + secondes * 0.25); gain.gain.exponentialRampToValueAtTime(0.0001, t + secondes);
+  source.connect(filtre).connect(gain).connect(reachy.son.sortie);
+  source.start(t); source.stop(t + secondes + 0.1);
+}
+function sonDouble(rang, pres) { note(hauteur(rang % 10), 0.4, { volume: 0.09, forme: 'triangle' }); if (pres) note(hauteur(rang % 10 + 2), 0.5, { volume: 0.07, apres: 0.06 }); souffler(0.1, 0.5, 2400, 300); }
+function sonChoc(face) { note(70, 0.45, { vers: 36, volume: 0.32, forme: 'triangle' }); souffler(face ? 0.5 : 0.3, 0.6, 1800, 120); }
+function sonTop(dernier) { note(dernier ? 880 : 440, dernier ? 0.5 : 0.14, { forme: 'triangle', volume: 0.13 }); }
+/** La corne du ferry : deux notes graves, longues. */
+function corne(fois) {
+  for (let i = 0; i < fois; i++) for (const hz of [110, 146.8]) note(hz, 1.5, { forme: 'sawtooth', volume: 0.07, apres: i * 1.9 });
+}
+
+// ===== Ce qu'on voit : la partie, ou la promenade derrière les écrans =====
+let mode = 'accueil';
+let partie = null;                  // la partie en cours ou finie
+let record = Infinity, horloge = 0, compte = 0, large = 0;
+let attente = { sans() {} };        // le « Jouer » en cours : de quoi partir sans Reachy
+const volant = { x: 0, frein: 0, nitro: false };                      // ce que le pilote demande, lissé
+const clavier = { gauche: false, droite: false, frein: false, nitro: false };
+const doigt = { tenu: false, x0: 0, x: 0 }, boutons = { frein: false, nitro: false };
+const paume = { x: 0, frein: 0, nitro: false };                        // ce que tient Reachy
+const fumees = [];
+const qualite = { finesse: 1, ms: 16, images: 0 };
+/** La promenade : le pilote automatique, déjà lancé, dans la lumière dorée. */
+function promenade() {
+  const g = nouvellePartie(PARCOURS);
+  g.auto.s = 150; g.auto.v = 40;
+  return g;
+}
+let demo = promenade();
+function enVue() { return (mode === 'accueil' || mode === 'place' || !partie) ? demo : partie; }
+
+function passer(nouveau) {
+  mode = nouveau;
+  $('scene').dataset.mode = nouveau;
+}
+function montrer(ecran) {
+  for (const id of ['accueil', 'place', 'pause', 'fin']) $(id).hidden = id !== ecran;
+}
+let annonceMinuteur = 0;
+function annoncer(texte, ms) {
+  const a = $('annonce');
+  a.textContent = texte;
+  a.classList.add('vu');
+  clearTimeout(annonceMinuteur);
+  annonceMinuteur = setTimeout(() => a.classList.remove('vu'), ms || 1800);
+}
+
+/** « Jouer », dans le clic ou la touche : avec Reachy s'il y en a un (il baisse ses antennes et relâche sa base, réveillé
+ *  d'abord s'il dormait), sinon au clavier ou au doigt. */
+function lancer() {
+  if (!rendu) return;
+  reachy.son.demarrer();
+  lancerAmbiance();
+  attente = reachy.lancer(PROFIL, { attendre, partir });
+}
+function attendre(titre) {
+  passer('place');
+  montrer('place');
+  $('place-titre').textContent = titre;
+}
+/** La voiture est sur la ligne : trois tops, et le soleil commence à descendre. */
+function partir(avecManette, raison) {
+  partie = nouvellePartie(PARCOURS);
+  volant.x = volant.frein = 0; large = 0; fumees.length = 0;
+  compte = 3.6;
+  passer('decompte');
+  montrer(null);
+  suivre(partie, 0, true);
+  annoncer(avecManette ? 'Ta paume sur sa tête, tes doigts sur ses antennes' : raison === 'absent' ? 'Sans manette : au clavier' : 'Les flèches braquent, Espace pour le turbo, Maj pour freiner', 3400);
+}
+/** La manette change d'état : rendue en route, on le dit, et le clavier reprend. */
+function surManette(etat, avant) {
+  if (etat !== 'non') return;
+  paume.x = paume.frein = 0; paume.nitro = false;
+  if ((mode === 'jeu' || mode === 'decompte') && avant === 'oui') annoncer('Manette rendue : flèches, Espace et Maj');
+}
+function surPad(pad) {
+  Object.assign(paume, commandesDepuisReachy(pad.corps, pad.antennes.gauche, pad.antennes.droite, pad.gauche, pad.droite));
+}
+/** L'arrivée, ou le ferry parti : le temps, la médaille, et Reachy qui reprend son corps pour le dire. */
+function finir(arrive) {
+  passer('fin');
+  const m = arrive ? medaille(partie.temps) : null, nouveau = arrive && partie.temps < record && record < Infinity;
+  if (arrive) record = Math.min(record, partie.temps);
+  $('fin-titre').textContent = m ? m.titre : 'Le ferry est parti';
+  $('fin-temps').textContent = arrive ? duree(partie.temps) : (Math.max(0, partie.p.arrivee - partie.auto.s) / 1000).toFixed(1).replace('.', ',') + ' km';
+  $('fin-unite').textContent = arrive ? (m ? 'médaille d’' + m.nom : '') : 'avant le port';
+  $('fin-unite').dataset.medaille = m ? m.nom : '';
+  $('fin-detail').textContent = partie.depasses + (partie.depasses > 1 ? ' voitures doublées' : ' voiture doublée')
+    + ' · ' + partie.chocs + (partie.chocs > 1 ? ' accrochages' : ' accrochage') + ' · ' + nombre(partie.vMax * 3.6) + ' km/h au plus vite';
+  $('fin-record').textContent = nouveau ? 'Nouveau record !' : record < Infinity ? 'Record de la session : ' + duree(record) : 'Il lève l’ancre à ' + duree(TEMPS_FERRY) + ' : rejoue pour le prendre.';
+  montrer('fin');
+  corne(arrive ? 2 : 1);
+  reachy.feter(m ? m.emotion : 'sad1');
+}
+function basculerPause() {
+  if (mode === 'jeu') { passer('pause'); montrer('pause'); }
+  else if (mode === 'pause') { passer('jeu'); montrer(null); }
+}
+
+/** Ce que le pilote demande : Reachy quand il tient la manette, sinon les flèches ou le doigt. */
+function commander(dt) {
+  const tenu = reachy.etat.manette === 'oui';
+  let x = (clavier.droite ? 1 : 0) - (clavier.gauche ? 1 : 0), frein = clavier.frein || boutons.frein ? 1 : 0;
+  if (tenu) { x = paume.x; frein = Math.max(frein, paume.frein); } else if (doigt.tenu) x = course(borne((doigt.x - doigt.x0) / 110, -1, 1));
+  volant.x += (x - volant.x) * (1 - Math.exp(-dt * (tenu ? 18 : 6)));
+  volant.frein += (frein - volant.frein) * (1 - Math.exp(-dt * 14));
+  volant.nitro = clavier.nitro || boutons.nitro || (tenu && paume.nitro);
+}
+/** Ce qui vient d'arriver dans la partie : le son, l'annonce, la secousse. */
+function suites(g) {
+  for (const e of g.evenements) {
+    if (e.type === 'double') { sonDouble(g.depasses, e.pres); if (g.depasses % 5 === 0) annoncer(g.depasses + ' voitures doublées'); }
+    else if (e.type === 'choc') {
+      sonChoc(e.face); camera.secousse = e.face ? 1.6 : 0.8;
+      const voile = $('eclat');
+      voile.classList.remove('vu'); void voile.offsetWidth; voile.classList.add('vu');
+    } else if (e.type === 'arrivee') finir(true);
+    else if (e.type === 'parti') finir(false);
+  }
+  g.evenements.length = 0;
+}
+/** Un pas de logique. */
+function pas(dt) {
+  if (mode === 'pause') return;
+  horloge += dt;
+  commander(dt);
+  if (mode === 'jeu') { avancerPartie(partie, volant, dt); suites(partie); }
+  else if (mode === 'decompte') {
+    const avant = Math.ceil(compte);
+    compte -= dt;
+    if (Math.ceil(compte) < avant && compte < 3) { sonTop(compte <= 0); $('decompte').innerHTML = '<span>' + (compte <= 0 ? 'Partez !' : Math.ceil(compte)) + '</span>'; }
+    if (compte <= 0) passer('jeu');
+  } else if (mode === 'fin') {                                          // la voiture finit seule : elle se range au bout du quai
+    const c = partie.auto, cmd = piloter(partie, false), reste = partie.p.longueur - 46 - c.s;
+    cmd.nitro = false;
+    cmd.frein = partie.arrivee ? borne(c.v * c.v / (2 * Math.max(reste, 1)) / FREINAGE, 0, 1) : 0.4;
+    if (partie.arrivee && reste < 1) c.v = 0;
+    rouler(partie.p, c, cmd, dt);
+    if (!partie.arrivee) large += dt * (4 + large * 0.12);              // le ferry s'éloigne
+  }
+  if (mode === 'accueil' || mode === 'place') {
+    avancerPartie(demo, piloter(demo, true), dt);
+    demo.evenements.length = 0;
+    if (demo.arrivee || demo.temps > 300) demo = promenade();
+  }
+}
+
+// ===== L'image =====
+const rendu = (() => {
+  const gl = toile.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance' });
+  if (!gl) return null;
+  try { return creerRendu(gl); } catch (e) { $('sans-3d').title = String(e && e.message || e); return null; }
+})();
+const taille = { l: 2, h: 2 };
+let reglage = 0;
+const ecrire = (id, texte) => { const el = $(id); if (el.textContent !== texte) el.textContent = texte; };
+const TEINTES = [[0.62, 0.08, 0.06], [0.75, 0.75, 0.73], [0.06, 0.1, 0.24], [0.8, 0.62, 0.1], [0.05, 0.05, 0.06], [0.2, 0.36, 0.3], [0.5, 0.52, 0.56]];
+
+function image(dt) {
+  const g = enVue(), c = g.auto, p = g.p, figee = mode === 'pause', enCourse = g === partie;
+  if (!figee) suivre(g, dt, false);
+  const haut = enCourse ? soleil(partie.temps) : 7.5, lumieres = soir(haut), abri = part(p, c.s, 'tunnel');
+  reglage += dt;
+  if (reglage > 0.1) {
+    reglage = 0;
+    reglerAmbiance(figee ? 0 : enCourse ? 1 : 0.4, c, part(p, c.s, 'falaise') + part(p, c.s, 'pont') + part(p, c.s, 'port'), lumieres.uNuit * (part(p, c.s, 'foret') + part(p, c.s, 'village')), abri);
+    if (enCourse) {
+      ecrire('vitesse', nombre(c.v * 3.6)); ecrire('port', (Math.max(0, p.arrivee - c.s) / 1000).toFixed(1).replace('.', ','));
+      const reste = Math.max(0, TEMPS_FERRY - partie.temps);
+      ecrire('ferry', Math.floor(reste / 60) + ':' + String(Math.floor(reste % 60)).padStart(2, '0'));
+      $('jauge-ferry').classList.toggle('presse', reste < 25);
+      $('turbo-niveau').style.transform = 'scaleX(' + c.nitro.toFixed(3) + ')';
+      $('turbo').classList.toggle('actif', c.turbo > 0.5);
+      $('volant-point').style.transform = 'rotate(' + (volant.x * 80).toFixed(1) + 'deg)';
+    }
+  }
+  if (!rendu) return;
+  qualite.ms += (dt * 1000 - qualite.ms) * 0.06;
+  if ((qualite.images += 1) % 90 === 0) {                                 // l'image suit ce que la machine peut
+    if (qualite.ms > 24 && qualite.finesse > 0.56) qualite.finesse -= 0.15;
+    else if (qualite.ms < 12 && qualite.finesse < 1) qualite.finesse = Math.min(1, qualite.finesse + 0.1);
+  }
+  // Ce qui bouge : la circulation, le ferry ; leurs feux, ceux de la voiture.
+  let nb = 0, nf = 0;
+  const boite = (v) => { if (nb < rendu.MOBILES) { rendu.mobiles.set(v, nb * 12); nb += 1; } };
+  const feu = (x, y, z, t, r, v, b, genre) => { if (nf < rendu.FEUX) { rendu.feux.set([x, y, z, t, r, v, b, genre], nf * 8); nf += 1; } };
+  const jour = 0.3 + 0.7 * lumieres.phares;
+  for (const a of g.trafic) {
+    const s = abscisse(p, a, g.temps);
+    if (s === null || s < c.s - 90 || s > c.s + 1100) continue;
+    const r = ou(p, s), sens = a.v < 0 ? -1 : 1, cap = r.cap + (sens < 0 ? Math.PI : 0), x = r.x + r.dx * a.u, z = r.z + r.dz * a.u, ax = Math.sin(r.cap) * sens, az = -Math.cos(r.cap) * sens;
+    const k = TEINTES[Math.floor(a.teinte * TEINTES.length)];
+    boite([x, r.y + 0.3, z, cap, 1.8, 0.74, 4.3, 9, a.teinte, ...k]);
+    boite([x - ax * 0.3, r.y + 1.04, z - az * 0.3, cap, 1.56, 0.5, 2.2, 10, a.teinte, ...k]);
+    for (const cote of [-0.62, 0.62]) {
+      feu(x + ax * 2.2 + r.dx * cote, r.y + 0.66, z + az * 2.2 + r.dz * cote, 0.5, 2.6 * jour, 2.4 * jour, 1.9 * jour, 0);
+      feu(x - ax * 2.2 + r.dx * cote, r.y + 0.7, z - az * 2.2 + r.dz * cote, 0.36, 1.5, 0.08, 0.04, 0);
+    }
+  }
+  const bateau = ferry(p, large);
+  for (let i = 0; i < bateau.boites.length; i += 12) boite(bateau.boites.slice(i, i + 12));
+  for (let i = 0; i < bateau.lumieres.length; i += 8) feu(...bateau.lumieres.slice(i, i + 8));
+  const ici = placer(p, c), nez = { x: Math.sin(c.lacet), z: -Math.cos(c.lacet) }, travers = { x: Math.cos(c.lacet), z: Math.sin(c.lacet) };
+  for (const cote of [-0.7, 0.7]) feu(ici.x - nez.x * 2.2 + travers.x * cote, ici.y + 0.66, ici.z - nez.z * 2.2 + travers.z * cote, 0.34 + 0.3 * c.frein, 1.6 + 4 * c.frein, 0.08, 0.04, 0);
+  // Ce qui luit : le faisceau du phare, la flamme du turbo, la fumée des pneus, la poussière du bas-côté, les étincelles.
+  lueurs.n = 0;
+  const oeil = camera.oeil, regard = camera.regard;
+  if (lumieres.uNuit > 0.08) for (const tour of [0, Math.PI]) {
+    const t = horloge * 0.55 + tour, ph = rendu.phare, bout = { x: ph.x + Math.cos(t) * 1500, y: ph.y - 12, z: ph.z + Math.sin(t) * 1500 };
+    ruban([ph, bout], (i) => (i ? 22 : 1.2), [1, 0.93, 0.76], (i) => (i ? 0 : 0.2 * lumieres.uNuit), oeil);
+  }
+  if (c.turbo > 0.05) for (const cote of [-0.42, 0.42]) {
+    const q = { x: ici.x - nez.x * 2.2 + travers.x * cote, y: ici.y + 0.36, z: ici.z - nez.z * 2.2 + travers.z * cote };
+    ruban([q, { x: q.x - nez.x * (1 + 2.6 * c.turbo), y: q.y, z: q.z - nez.z * (1 + 2.6 * c.turbo) }], (i) => (i ? 0.04 : 0.24), [0.4, 0.62, 1], (i) => (i ? 0 : 3.2 * c.turbo), oeil);
+  }
+  if (!figee && (c.glisse > 0.3 || c.hors || c.frotte) && c.v > 8 && fumees.length < 70) for (const cote of [-0.8, 0.8]) {
+    fumees.push({ x: ici.x - nez.x * 1.4 + travers.x * cote, y: ici.y + 0.25, z: ici.z - nez.z * 1.4 + travers.z * cote, vie: 1, etincelle: c.frotte > 0 && cote > 0, poussiere: c.hors > 0 });
+  }
+  for (const f of fumees) {
+    if (!figee) { f.vie -= dt * (f.etincelle ? 4 : 1.1); f.y += dt * (f.etincelle ? 2.5 : 0.7); }
+    const teinte = f.etincelle ? [1, 0.7, 0.3] : lumieres.uSoleilK.map((v, i) => 0.05 + v * (f.poussiere ? [0.2, 0.17, 0.13][i] : 0.11) + lumieres.uHorizon[i] * 0.2);
+    bouffee(f, f.etincelle ? 0.18 : 0.5 + 1.9 * (1 - f.vie), teinte, f.etincelle ? 5 * f.vie : 0.42 * f.vie * f.vie, regard);
+  }
+  while (fumees.length && fumees[0].vie <= 0) fumees.shift();
+  rendu.dessiner({ auto: c, soleil: haut, temps: horloge, mobiles: nb, feux: nf, abri, roulis: volant.x * borne(c.v / V_CROISIERE, 0, 1.4) * 0.05, fondu: lisse(qualite.images / 40) },
+    { l: taille.l, h: taille.h, finesse: qualite.finesse });
+}
+
+// ===== Les entrées =====
+const TOUCHES = { ArrowLeft: 'gauche', ArrowRight: 'droite', q: 'gauche', a: 'gauche', d: 'droite', ArrowDown: 'frein', s: 'frein', Shift: 'frein', ArrowUp: 'nitro', z: 'nitro', w: 'nitro', ' ': 'nitro' };
+function surTouche(e, enfoncee) {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k)) e.preventDefault();
+  if (TOUCHES[k]) clavier[TOUCHES[k]] = enfoncee;
+  if (!enfoncee || e.repeat) return;
+  if ((k === 'Enter' || k === ' ') && (mode === 'accueil' || mode === 'fin')) lancer();
+  else if ((k === 'Enter' || k === ' ') && mode === 'pause') basculerPause();
+  if (k === 'p') basculerPause();
+  if (k === 'r' && mode !== 'accueil' && mode !== 'place') lancer();
+  if (k === 'm') basculerSon();
+}
+/** Le doigt ou la souris, posés puis glissés de côté : un volant, qui revient au centre quand on lâche. */
+function surPointeur(e) {
+  if (e.type === 'pointerdown') { doigt.tenu = true; doigt.x0 = doigt.x = e.clientX; }
+  else if (e.type === 'pointermove') doigt.x = e.clientX;
+  else doigt.tenu = false;
+}
+/** Un bouton qu'on tient : le frein, le turbo. */
+function tenir(id, quoi) {
+  const bouton = $(id), poser = (tenu) => (e) => { e.preventDefault(); boutons[quoi] = tenu; bouton.classList.toggle('tenue', tenu); };
+  bouton.addEventListener('pointerdown', poser(true));
+  for (const fin of ['pointerup', 'pointercancel', 'pointerleave']) bouton.addEventListener(fin, poser(false));
+}
+window.addEventListener('keydown', (e) => surTouche(e, true));
+window.addEventListener('keyup', (e) => surTouche(e, false));
+window.addEventListener('blur', () => { for (const k in clavier) clavier[k] = false; doigt.tenu = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'jeu') basculerPause(); });
+for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) toile.addEventListener(type, surPointeur);
+tenir('btn-frein', 'frein');
+tenir('btn-turbo', 'nitro');
+$('jouer').addEventListener('click', lancer);
+$('rejouer').addEventListener('click', lancer);
+$('recommencer').addEventListener('click', lancer);
+$('reprendre').addEventListener('click', basculerPause);
+$('btn-pause').addEventListener('click', basculerPause);
+$('btn-son').addEventListener('click', basculerSon);
+$('sans-robot').addEventListener('click', () => attente.sans());
+reachy.quand('manette', surManette);
+reachy.quand('pad', surPad);
+
+if (!rendu) { $('sans-3d').hidden = false; $('jouer').disabled = true; }
+suivre(demo, 0, true);
+reachy.pastilles({ robot: $('etat-robot'), manette: $('etat-manette'), tenue: TENUE });
+reachy.toile(toile, { dprMax: DPR_MAX, surTaille: () => { taille.l = toile.width; taille.h = toile.height; } });
+reachy.boucle({ pas: PAS, avancer: pas, dessiner: image });
+
+// ===== Autotest : les vraies fonctions du parcours, de la conduite et de la course, sur des situations connues =====
+window.__selfTest = () => {
+  const p = PARCOURS, tenir = (c, cmd, secondes) => { for (let t = 0; t < secondes; t += PAS) rouler(p, c, cmd, PAS); return c; };
+  // Le parcours : il se rebâtit pareil, ne se replie pas sur lui-même, reste au-dessus de la mer, la mer à sa droite.
+  const autre = tracer();
+  let ecartTrace = 0, capMax = 0, rayonMin = Infinity, plusBas = Infinity, replis = 0, sousLaMer = 0;
+  for (let i = 0; i < p.n; i++) {
+    ecartTrace = Math.max(ecartTrace, Math.abs(p.x[i] - autre.x[i]) + Math.abs(p.y[i] - autre.y[i]) + Math.abs(p.z[i] - autre.z[i]));
+    capMax = Math.max(capMax, Math.abs(p.cap[i])); rayonMin = Math.min(rayonMin, 1 / Math.max(Math.abs(p.k[i]), 1e-9)); plusBas = Math.min(plusBas, p.y[i]);
+    for (const cote of [-1, 1]) if (Math.min(170, Math.max(portee(p, i, cote), DEMI_ROUTE + 1.5)) * Math.max(0, cote * p.k[i]) > 0.86) replis += 1;
+    if (sol(p, i, 5) < -5.001 || sol(p, i, -170) < -5.001) sousLaMer += 1;
+  }
+  const relief = batirRelief(p);
+  let pentus = 0;
+  for (let i = 0; i < relief.v.length; i += 9) if (!(relief.v[i + 4] > 0) || Math.abs(Math.hypot(relief.v[i + 3], relief.v[i + 4], relief.v[i + 5]) - 1) > 1e-3) pentus += 1;
+  // La conduite : seule, elle prend sa vitesse ; le volant la déporte du bon côté ; le frein, le turbo, le bas-côté, la glissière.
+  const droit = tenir(nouvelleVoiture(p, 40), { x: 0, frein: 0, nitro: false }, 8);
+  const aDroite = tenir(Object.assign(nouvelleVoiture(p, 60), { v: 30, u: 0 }), { x: 0.3, frein: 0, nitro: false }, 0.6);
+  const freinee = tenir(Object.assign(nouvelleVoiture(p, 60), { v: 40 }), { x: 0, frein: 1, nitro: false }, 1);
+  const pleine = Object.assign(nouvelleVoiture(p, 60), { v: 40, nitro: 1 }), videe = tenir(pleine, { x: 0, frein: 0, nitro: true }, 2);
+  const dansLeBasCote = tenir(Object.assign(nouvelleVoiture(p, 60), { v: 44, u: 4.5 }), { x: 0, frein: 0, nitro: false }, 0.5);
+  const contreLeMuret = tenir(Object.assign(nouvelleVoiture(p, 60), { v: 30, u: 4 }), { x: 1, frein: 0, nitro: false }, 2);
+  const glissee = tenir(Object.assign(nouvelleVoiture(p, 60), { v: 44, u: 0, nitro: 0 }), { x: 1, frein: 0.6, nitro: false }, 0.5);
+  // La course : doubler compte et recharge le turbo ; un choc ralentit ; l'arrivée et le départ du ferry.
+  const course1 = nouvellePartie(p), lente = course1.trafic.find((a) => a.v > 0);
+  Object.assign(course1.auto, { s: lente.s0 - 12, u: -VOIE, v: 46, nitro: 0.2 });
+  for (let t = 0; t < 1.6; t += PAS) avancerPartie(course1, { x: 0, frein: 0, nitro: false }, PAS);
+  const course2 = nouvellePartie(p), devant = course2.trafic.find((a) => a.v > 0);
+  Object.assign(course2.auto, { s: devant.s0 - 8, u: VOIE, v: 46 });
+  for (let t = 0; t < 0.6; t += PAS) avancerPartie(course2, { x: 0, frein: 0, nitro: false }, PAS);
+  const course3 = nouvellePartie(p);
+  Object.assign(course3.auto, { s: p.arrivee - 3, v: 40 }); course3.temps = 150;
+  for (let t = 0; t < 0.3; t += PAS) avancerPartie(course3, { x: 0, frein: 0, nitro: false }, PAS);
+  const course4 = nouvellePartie(p);
+  course4.temps = TEMPS_FERRY - 0.1;
+  for (let t = 0; t < 0.3; t += PAS) avancerPartie(course4, { x: 0, frein: 0, nitro: false }, PAS);
+  const sage = simuler(false);
+  // Reachy sous la paume ; le regard ; le soir.
+  const plein = commandesDepuisReachy(VOLANT_PLEIN, 0, 0, false, true), doux = commandesDepuisReachy(-1, -FREIN_PLEIN, 0, true, false);
+  const r = axes(0.7, 0.2, 0.3), oeil = { x: 10, y: 50, z: -30 }, pv = fois(perspective(1, 1.3, 1, 1000), vueDe(oeil, r));
+  const centre = projeter(pv, oeil.x + r.a.x * 50, oeil.y + r.a.y * 50, oeil.z + r.a.z * 50);
+  // « Jouer » passe par la boîte à outils : un robot endormi est demandé, puis on part sans lui ; sans robot, rien n'est demandé.
+  const eveilleAvant = reachy.etat.eveille, dit = [], sansRobot = [];
+  reachy.etat.eveille = false;
+  const essaiJouer = reachy.lancer(PROFIL, { attendre: (titre) => dit.push(titre), partir: (avec) => dit.push(avec) });
+  const demandee = reachy.etat.manette === 'attente' && reachy.etat.profil === PROFIL;
+  essaiJouer.sans();
+  const partiSansLui = dit[dit.length - 1] === false && reachy.etat.manette === 'non';
+  reachy.etat.eveille = null;
+  reachy.lancer(PROFIL, { partir: (avec) => sansRobot.push(avec) });
+  reachy.etat.eveille = eveilleAvant;
+  return [
+    ['Parcours : retracé, il est le même', ecartTrace, 0, 0],
+    ['Parcours : plus de sept kilomètres', +(p.longueur > 7000 && p.longueur < 8000), 1, 0],
+    ['Parcours : la mer reste à droite (jamais plus de 50° de travers)', +(capMax < 50 * RAD), 1, 0],
+    ['Parcours : aucun virage plus serré que 150 m', +(rayonMin >= 150), 1, 0],
+    ['Parcours : la route reste au-dessus de l’eau', +(plusBas > 2), 1, 0],
+    ['Relief : aucune nervure ne croise ses voisines dans un virage', replis, 0, 0],
+    ['Relief : jamais sous le fond de la mer', sousLaMer, 0, 0],
+    ['Relief : chaque normale regarde vers le haut, de longueur 1', pentus, 0, 0],
+    ['Conduite : seule, elle prend sa vitesse de croisière', droit.v, V_CROISIERE, 3],
+    ['Conduite : volant à droite, elle se déporte à droite', +(aDroite.u > 0.3), 1, 0],
+    ['Conduite : le frein à fond lui prend 26 m/s en une seconde', 40 - freinee.v, FREINAGE, 3],
+    ['Conduite : le turbo l’emporte au-delà de sa croisière', +(videe.v > V_CROISIERE + 4), 1, 0],
+    ['Conduite : deux secondes de turbo vident la jauge d’autant', 1 - videe.nitro, 2 * NITRO_DEBIT, 0.02],
+    ['Conduite : le bas-côté la ralentit', +(dansLeBasCote.v < 42), 1, 0],
+    ['Conduite : le muret l’arrête au bord', contreLeMuret.u, GLISSIERE - LARGEUR_AUTO / 2, 1e-6],
+    ['Conduite : freinée en braquant, elle glisse et le turbo se recharge', +(glissee.glisse > 0.5 && glissee.nitro > 0.02), 1, 0],
+    ['Course : une voiture doublée compte', course1.depasses, 1, 0],
+    ['Course : doubler recharge le turbo', +(course1.auto.nitro > 0.2 + NITRO_DOUBLE * 0.9), 1, 0],
+    ['Course : un choc par l’arrière compte une fois et ralentit', course2.chocs * 100 + Math.round(course2.auto.v), 100 + Math.round(course2.auto.v), 0],
+    ['Course : après le choc, elle va moins vite que sa croisière', +(course2.auto.v < 36), 1, 0],
+    ['Course : la ligne passée, c’est l’arrivée', +(course3.arrivee && !course3.perdue), 1, 0],
+    ['Course : à l’heure dite, le ferry part', +(course4.perdue && !course4.arrivee), 1, 0],
+    ['Médailles : l’or avant le coucher, puis l’argent, le bronze, rien', [TEMPS_OR - 1, TEMPS_ARGENT - 1, TEMPS_FERRY - 1, TEMPS_FERRY + 1].map((t) => { const m = medaille(t); return m ? m.nom.length : 0; }).join(''), '2660', 0],
+    ['Soir : le soleil touche la mer quand l’or s’en va', soleil(TEMPS_OR), 0.4, 1e-9],
+    ['Soir : il descend sans cesse', +(soleil(0) > soleil(60) && soleil(60) > soleil(TEMPS_ARGENT) && soleil(TEMPS_ARGENT) > soleil(TEMPS_FERRY)), 1, 0],
+    ['Soir : à la nuit, les lampadaires et les phares sont allumés', soir(-12).uLampes + soir(-12).phares, 2, 1e-9],
+    ['Soir : en plein soleil, ils sont éteints', soir(11).uLampes + soir(11).phares, 0, 0],
+    ['Pilote automatique : il arrive au port', +sage.arrivee, 1, 0],
+    ['Pilote automatique : sans accrochage, et avant le départ du ferry', sage.chocs * 1000 + (sage.temps < TEMPS_FERRY ? 0 : 1), 0, 0],
+    ['Paume : la main tournée à fond vers la gauche (la base comptée positive), le volant à gauche', plein.x, -1, 1e-9],
+    ['Paume : l’antenne de droite lance le turbo, sans freiner', plein.frein * 10 + (plein.nitro ? 1 : 0), 1, 0],
+    ['Paume : l’antenne de gauche enfoncée freine à fond', doux.frein, 1, 1e-9],
+    ['Paume : un degré de base ne braque pas', doux.x, 0, 0],
+    ['Regard : droit devant l’œil, le centre de l’image', Math.hypot(centre.x, centre.y), 0, 1e-6],
+    ['Jouer, robot endormi : la manette « paume » est demandée, on attend', +demandee, 1, 0],
+    ['Jouer sans Reachy : on part sans lui, la manette est rendue', +partiSansLui, 1, 0],
+    ['Jouer sans robot : on part aussitôt, sans manette', sansRobot.length === 1 && sansRobot[0] === false ? 1 : 0, 1, 0],
+  ];
+};
+</script>
+</body>
+</html>

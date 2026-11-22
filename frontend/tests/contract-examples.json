@@ -1,0 +1,3323 @@
+{
+    "Catalog": [
+        {
+            "groups": [
+                {
+                    "key": "session",
+                    "label": "Conversation"
+                },
+                {
+                    "key": "gestures",
+                    "label": "Gestes et mouvements"
+                },
+                {
+                    "key": "emotions",
+                    "label": "Émotions"
+                },
+                {
+                    "key": "animations",
+                    "label": "Animations"
+                },
+                {
+                    "key": "scenes",
+                    "label": "Scènes"
+                },
+                {
+                    "key": "apps",
+                    "label": "Apps"
+                },
+                {
+                    "key": "spotify",
+                    "label": "Spotify"
+                },
+                {
+                    "key": "settings",
+                    "label": "Réglages"
+                }
+            ],
+            "entries": [
+                {
+                    "id": "session:wake",
+                    "group": "session",
+                    "label": "Réveiller le robot",
+                    "description": "Il se réveille et écoute.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "session",
+                        "command": "wake"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "session:sleep",
+                    "group": "session",
+                    "label": "Mettre en veille",
+                    "description": "Il termine la conversation et se rendort.",
+                    "say": "dors",
+                    "tool": "goto_sleep",
+                    "action": {
+                        "kind": "session",
+                        "command": "sleep"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "session:restart",
+                    "group": "session",
+                    "label": "Relancer la conversation",
+                    "description": "Il se rendort puis se réveille avec les derniers réglages.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "session",
+                        "command": "restart"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "session:look",
+                    "group": "gestures",
+                    "label": "Regarder la pièce",
+                    "description": "Il prend une photo avec sa caméra et décrit ce qu'il voit.",
+                    "say": "regarde autour de toi",
+                    "tool": "look",
+                    "action": {
+                        "kind": "say",
+                        "text": "Regarde autour de toi."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "session:turn",
+                    "group": "gestures",
+                    "label": "Tourner le corps",
+                    "description": "Il pivote tout son corps, jusqu'à 100° de chaque côté.",
+                    "say": "tourne-toi vers la gauche",
+                    "tool": "turn_body",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Tourne-toi vers "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "gesture:nod",
+                    "group": "gestures",
+                    "label": "Oui de la tête",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "fais oui de la tête",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "nod",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:shake",
+                    "group": "gestures",
+                    "label": "Non de la tête",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "fais non de la tête",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "shake",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:tilt_left",
+                    "group": "gestures",
+                    "label": "Tête penchée à gauche",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "penche la tête à gauche",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "tilt_left",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:tilt_right",
+                    "group": "gestures",
+                    "label": "Tête penchée à droite",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "penche la tête à droite",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "tilt_right",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:look_up",
+                    "group": "gestures",
+                    "label": "Regard vers le haut",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "regarde en haut",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "look_up",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:look_down",
+                    "group": "gestures",
+                    "label": "Regard vers le bas",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "regarde en bas",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "look_down",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:wiggle",
+                    "group": "gestures",
+                    "label": "Antennes joyeuses",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "remue les antennes",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "wiggle",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:bow",
+                    "group": "gestures",
+                    "label": "Révérence",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "fais une révérence",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "bow",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:think",
+                    "group": "gestures",
+                    "label": "Réfléchir",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "fais semblant de réfléchir",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "think",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:surprise",
+                    "group": "gestures",
+                    "label": "Surprise",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "fais le surpris",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "surprise",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "gesture:dance",
+                    "group": "gestures",
+                    "label": "Petite danse",
+                    "description": "Un geste de tête et d'antennes, joué seulement à la demande.",
+                    "say": "fais une petite danse",
+                    "tool": "do_gesture",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "gesture",
+                            "name": "dance",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:cheerful1",
+                    "group": "emotions",
+                    "label": "Joyeux",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es joyeux",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "cheerful1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:enthusiastic1",
+                    "group": "emotions",
+                    "label": "Enthousiaste",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre ton enthousiasme",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "enthusiastic1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:laughing1",
+                    "group": "emotions",
+                    "label": "Rire",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "fais-moi rire",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "laughing1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:loving1",
+                    "group": "emotions",
+                    "label": "Affectueux",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu m'aimes",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "loving1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:grateful1",
+                    "group": "emotions",
+                    "label": "Reconnaissant",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es reconnaissant",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "grateful1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:proud1",
+                    "group": "emotions",
+                    "label": "Fier",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es fier",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "proud1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:success1",
+                    "group": "emotions",
+                    "label": "Victoire",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "fête la victoire",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "success1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:amazed1",
+                    "group": "emotions",
+                    "label": "Émerveillé",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es émerveillé",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "amazed1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:surprised1",
+                    "group": "emotions",
+                    "label": "Surpris",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es surpris",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "surprised1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:curious1",
+                    "group": "emotions",
+                    "label": "Curieux",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es curieux",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "curious1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:inquiring1",
+                    "group": "emotions",
+                    "label": "Interrogatif",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "prends un air interrogatif",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "inquiring1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:thoughtful1",
+                    "group": "emotions",
+                    "label": "Pensif",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "prends un air pensif",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "thoughtful1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:understanding1",
+                    "group": "emotions",
+                    "label": "Compréhensif",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu comprends",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "understanding1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:confused1",
+                    "group": "emotions",
+                    "label": "Perplexe",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es perplexe",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "confused1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:uncertain1",
+                    "group": "emotions",
+                    "label": "Hésitant",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu hésites",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "uncertain1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:oops1",
+                    "group": "emotions",
+                    "label": "Oups",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "fais oups",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "oops1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:shy1",
+                    "group": "emotions",
+                    "label": "Timide",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "fais le timide",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "shy1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:sad1",
+                    "group": "emotions",
+                    "label": "Triste",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es triste",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "sad1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:tired1",
+                    "group": "emotions",
+                    "label": "Fatigué",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu es fatigué",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "tired1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:boredom1",
+                    "group": "emotions",
+                    "label": "Ennuyé",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "montre que tu t'ennuies",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "boredom1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:fear1",
+                    "group": "emotions",
+                    "label": "Effrayé",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "fais semblant d'avoir peur",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "fear1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:welcoming1",
+                    "group": "emotions",
+                    "label": "Accueillant",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "accueille-moi",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "welcoming1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:yes1",
+                    "group": "emotions",
+                    "label": "Oui enthousiaste",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "dis oui avec tout ton corps",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "yes1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:no1",
+                    "group": "emotions",
+                    "label": "Non catégorique",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "dis non avec tout ton corps",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "no1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "emotion:dance1",
+                    "group": "emotions",
+                    "label": "Danse",
+                    "description": "Une émotion enregistrée par Pollen, avec son petit son.",
+                    "say": "danse pour moi",
+                    "tool": "play_emotion",
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "emotion",
+                            "name": "dance1",
+                            "mode": null,
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:calm",
+                    "group": "animations",
+                    "label": "Posé (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "calm",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:curious",
+                    "group": "animations",
+                    "label": "Curieux (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "curious",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:dreamy",
+                    "group": "animations",
+                    "label": "Rêveur (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "dreamy",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:breathing",
+                    "group": "animations",
+                    "label": "Respiration (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "breathing",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:sleepy",
+                    "group": "animations",
+                    "label": "Somnolent (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "sleepy",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:observer",
+                    "group": "animations",
+                    "label": "Observateur (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "observer",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:playful",
+                    "group": "animations",
+                    "label": "Espiègle (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "playful",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:idle:still",
+                    "group": "animations",
+                    "label": "Immobile (repos)",
+                    "description": "Animation de repos. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "still",
+                            "mode": "idle",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:attentive",
+                    "group": "animations",
+                    "label": "Attentif (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "attentive",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:curious",
+                    "group": "animations",
+                    "label": "Curieux (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "curious",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:patient",
+                    "group": "animations",
+                    "label": "Patient (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "patient",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:nodding",
+                    "group": "animations",
+                    "label": "Approbateur (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "nodding",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:tilted",
+                    "group": "animations",
+                    "label": "Intrigué (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "tilted",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:focused",
+                    "group": "animations",
+                    "label": "Concentré (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "focused",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:listening:still",
+                    "group": "animations",
+                    "label": "Immobile (écoute)",
+                    "description": "Animation de écoute. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "still",
+                            "mode": "listening",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:talking:calm",
+                    "group": "animations",
+                    "label": "Posé (parole)",
+                    "description": "Animation de parole. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "calm",
+                            "mode": "talking",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:talking:nod",
+                    "group": "animations",
+                    "label": "Hochements (parole)",
+                    "description": "Animation de parole. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "nod",
+                            "mode": "talking",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:talking:lean",
+                    "group": "animations",
+                    "label": "Penché (parole)",
+                    "description": "Animation de parole. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "lean",
+                            "mode": "talking",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:talking:expressive",
+                    "group": "animations",
+                    "label": "Expressif (parole)",
+                    "description": "Animation de parole. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "expressive",
+                            "mode": "talking",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:talking:thoughtful",
+                    "group": "animations",
+                    "label": "Pensif (parole)",
+                    "description": "Animation de parole. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "thoughtful",
+                            "mode": "talking",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "animation:talking:still",
+                    "group": "animations",
+                    "label": "Immobile (parole)",
+                    "description": "Animation de parole. Elle se choisit dans le studio et s'applique au prochain réveil.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "try",
+                        "move": {
+                            "kind": "animation",
+                            "name": "still",
+                            "mode": "talking",
+                            "tuning": {
+                                "amplitude": 1.0,
+                                "speed": 1.0
+                            },
+                            "seconds": 6.0
+                        }
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "scenes:play",
+                    "group": "scenes",
+                    "label": "Jouer une scène",
+                    "description": "Une saynète à plusieurs voix, écrite à l'avance.",
+                    "say": "joue la scène de la fête",
+                    "tool": "play_scene",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Joue la scène "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "scenes:write",
+                    "group": "scenes",
+                    "label": "Écrire une scène",
+                    "description": "Une saynète écrite sur ton idée, jouée dès qu'elle est prête.",
+                    "say": "fais une scène où deux personnages débattent de la dualité onde-corpuscule",
+                    "tool": "write_scene",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Fais une scène où "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "scene:fete-surprise",
+                    "group": "scenes",
+                    "label": "La fête surprise",
+                    "description": "Une scène à plusieurs voix, jouée par le robot.",
+                    "say": "joue la scène “La fête surprise”",
+                    "tool": "play_scene",
+                    "action": {
+                        "kind": "scene",
+                        "scene_id": "fete-surprise"
+                    },
+                    "preview": true
+                },
+                {
+                    "id": "apps:create",
+                    "group": "apps",
+                    "label": "Créer une app",
+                    "description": "Un jeu ou un petit outil, construit en quelques minutes : décris-le.",
+                    "say": "fais-moi un Snake où tu comptes les points",
+                    "tool": "app",
+                    "action": {
+                        "kind": "app",
+                        "app_id": null
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "apps:update",
+                    "group": "apps",
+                    "label": "Modifier une app",
+                    "description": "Change une app existante.",
+                    "say": "modifie l'app Snake : ajoute un niveau",
+                    "tool": "app",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Modifie l'app "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "app:snake",
+                    "group": "apps",
+                    "label": "Snake",
+                    "description": "Ouvre cette app sur le dashboard.",
+                    "say": "ouvre Snake",
+                    "tool": "app",
+                    "action": {
+                        "kind": "app",
+                        "app_id": "snake"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:track",
+                    "group": "spotify",
+                    "label": "Lancer un titre",
+                    "description": "Un morceau, cherché sur Spotify.",
+                    "say": "mets le titre Get Lucky",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Mets le titre "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:artist",
+                    "group": "spotify",
+                    "label": "Lancer un artiste",
+                    "description": "Les titres d'un artiste.",
+                    "say": "mets des chansons de Daft Punk",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Mets des chansons de "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:album",
+                    "group": "spotify",
+                    "label": "Lancer un album",
+                    "description": "Un album en entier.",
+                    "say": "mets l'album Discovery",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Mets l'album "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:playlist",
+                    "group": "spotify",
+                    "label": "Lancer une playlist",
+                    "description": "Une de tes playlists, ou une playlist publique.",
+                    "say": "mets ma playlist Dimanche",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Mets ma playlist "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:liked",
+                    "group": "spotify",
+                    "label": "Mes titres likés",
+                    "description": "Tes titres likés, en aléatoire.",
+                    "say": "mets mes titres likés",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Mets mes titres likés."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:audiobook",
+                    "group": "spotify",
+                    "label": "Livre audio",
+                    "description": "Reprend un livre audio là où tu en étais.",
+                    "say": "reprends mon livre audio",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Reprends mon livre audio."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:play:podcast",
+                    "group": "spotify",
+                    "label": "Podcast",
+                    "description": "Le dernier épisode d'une émission.",
+                    "say": "mets le dernier épisode de mon podcast",
+                    "tool": "play_music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Mets le dernier épisode de mon podcast."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:pause",
+                    "group": "spotify",
+                    "label": "Pause",
+                    "description": "Met la musique en pause.",
+                    "say": "mets la musique en pause",
+                    "tool": "music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Mets la musique en pause."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:resume",
+                    "group": "spotify",
+                    "label": "Reprendre la musique",
+                    "description": "Relance la lecture là où elle était.",
+                    "say": "remets la musique",
+                    "tool": "music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Remets la musique."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:next",
+                    "group": "spotify",
+                    "label": "Morceau suivant",
+                    "description": "Passe au morceau suivant.",
+                    "say": "passe au suivant",
+                    "tool": "music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Passe au suivant."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:previous",
+                    "group": "spotify",
+                    "label": "Morceau précédent",
+                    "description": "Revient au morceau précédent.",
+                    "say": "reviens au morceau précédent",
+                    "tool": "music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Reviens au morceau précédent."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:now",
+                    "group": "spotify",
+                    "label": "Qu'est-ce qui passe ?",
+                    "description": "Il dit le titre et l'artiste en cours.",
+                    "say": "qu'est-ce qui passe ?",
+                    "tool": "music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Qu'est-ce qui passe ?"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:like",
+                    "group": "spotify",
+                    "label": "Liker ce titre",
+                    "description": "Ajoute le titre en cours à tes titres likés.",
+                    "say": "like ce morceau",
+                    "tool": "music",
+                    "action": {
+                        "kind": "say",
+                        "text": "Like ce morceau."
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:queue",
+                    "group": "spotify",
+                    "label": "Ajouter à la file",
+                    "description": "Met un morceau à la suite.",
+                    "say": "ajoute à la file Get Lucky",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Ajoute à la file "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:seek",
+                    "group": "spotify",
+                    "label": "Avancer ou reculer",
+                    "description": "Se déplace dans le morceau en cours.",
+                    "say": "avance la musique de 30 secondes",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Avance la musique de "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:shuffle",
+                    "group": "spotify",
+                    "label": "Lecture aléatoire",
+                    "description": "La met en marche ou la coupe.",
+                    "say": "mets la lecture aléatoire en marche",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Mets la lecture aléatoire "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:repeat",
+                    "group": "spotify",
+                    "label": "Répétition",
+                    "description": "Répète le morceau, la playlist, ou plus rien.",
+                    "say": "répète ce morceau",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Répète "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:volume",
+                    "group": "spotify",
+                    "label": "Volume de Spotify",
+                    "description": "Celui de l'appareil Spotify, pas du robot.",
+                    "say": "mets le volume de Spotify à 30",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Mets le volume de Spotify à "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:device",
+                    "group": "spotify",
+                    "label": "Changer d'appareil",
+                    "description": "Passe la musique sur un autre appareil.",
+                    "say": "passe la musique sur le salon",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Passe la musique sur "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "spotify:playlist",
+                    "group": "spotify",
+                    "label": "Créer une playlist",
+                    "description": "Ce qui a été lancé aujourd'hui, sous le nom que tu dis.",
+                    "say": "fais une playlist de ce qu'on a écouté, appelée Dimanche",
+                    "tool": "music",
+                    "action": {
+                        "kind": "compose",
+                        "text": "Fais une playlist de ce qu'on a écouté, appelée "
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:name",
+                    "group": "settings",
+                    "label": "Nom du robot",
+                    "description": "Le nom auquel il répond.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "settings",
+                        "field": "name"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:voice",
+                    "group": "settings",
+                    "label": "Voix",
+                    "description": "Sa voix Gemini, avec un échantillon pour chacune.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "settings",
+                        "field": "voice"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:personality",
+                    "group": "settings",
+                    "label": "Personnalité",
+                    "description": "Quelques lignes qui disent qui il est.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "settings",
+                        "field": "personality"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:volume",
+                    "group": "settings",
+                    "label": "Volume",
+                    "description": "Le volume de son haut-parleur, appliqué tout de suite.",
+                    "say": "baisse le volume",
+                    "tool": "set_volume",
+                    "action": {
+                        "kind": "settings",
+                        "field": "volume"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:gaze_tracking",
+                    "group": "settings",
+                    "label": "Regard actif",
+                    "description": "Sa tête suit le visage de la personne qui lui parle.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "settings",
+                        "field": "gaze_tracking"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:web_search",
+                    "group": "settings",
+                    "label": "Recherche web",
+                    "description": "Il cherche sur le web pour l'actualité et la météo.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "settings",
+                        "field": "web_search"
+                    },
+                    "preview": false
+                },
+                {
+                    "id": "settings:idle_sleep_minutes",
+                    "group": "settings",
+                    "label": "Mise en veille",
+                    "description": "Après combien de minutes de silence il se rendort.",
+                    "say": null,
+                    "tool": null,
+                    "action": {
+                        "kind": "settings",
+                        "field": "idle_sleep_minutes"
+                    },
+                    "preview": false
+                }
+            ]
+        }
+    ],
+    "SettingsView": [
+        {
+            "settings": {
+                "name": "Reachy",
+                "voice": "Achird",
+                "personality": "",
+                "idle_animation": "calm",
+                "listening_animation": "attentive",
+                "talking_animation": "calm",
+                "tuning": {
+                    "idle": {
+                        "amplitude": 1.0,
+                        "speed": 1.0
+                    },
+                    "listening": {
+                        "amplitude": 1.0,
+                        "speed": 1.0
+                    },
+                    "talking": {
+                        "amplitude": 1.0,
+                        "speed": 1.0
+                    }
+                },
+                "web_search": true,
+                "gaze_tracking": false,
+                "idle_sleep_minutes": 3,
+                "apps_model": "opus",
+                "apps_effort": "high"
+            },
+            "system_prompt": "Tu es Reachy, un petit robot de bureau.",
+            "web_prompt": "Tu peux chercher sur le web.",
+            "options": {
+                "voices": [
+                    {
+                        "name": "Achernar",
+                        "gender": "female",
+                        "descriptor": "douce"
+                    },
+                    {
+                        "name": "Achird",
+                        "gender": "male",
+                        "descriptor": "amicale"
+                    },
+                    {
+                        "name": "Algenib",
+                        "gender": "male",
+                        "descriptor": "éraillée"
+                    },
+                    {
+                        "name": "Algieba",
+                        "gender": "male",
+                        "descriptor": "fluide"
+                    },
+                    {
+                        "name": "Alnilam",
+                        "gender": "male",
+                        "descriptor": "ferme"
+                    },
+                    {
+                        "name": "Aoede",
+                        "gender": "female",
+                        "descriptor": "légère"
+                    },
+                    {
+                        "name": "Autonoe",
+                        "gender": "female",
+                        "descriptor": "lumineuse"
+                    },
+                    {
+                        "name": "Callirrhoe",
+                        "gender": "female",
+                        "descriptor": "décontractée"
+                    },
+                    {
+                        "name": "Charon",
+                        "gender": "male",
+                        "descriptor": "informative"
+                    },
+                    {
+                        "name": "Despina",
+                        "gender": "female",
+                        "descriptor": "fluide"
+                    },
+                    {
+                        "name": "Enceladus",
+                        "gender": "male",
+                        "descriptor": "voilée"
+                    },
+                    {
+                        "name": "Erinome",
+                        "gender": "female",
+                        "descriptor": "claire"
+                    },
+                    {
+                        "name": "Fenrir",
+                        "gender": "male",
+                        "descriptor": "exaltée"
+                    },
+                    {
+                        "name": "Gacrux",
+                        "gender": "female",
+                        "descriptor": "mûre"
+                    },
+                    {
+                        "name": "Iapetus",
+                        "gender": "male",
+                        "descriptor": "claire"
+                    },
+                    {
+                        "name": "Kore",
+                        "gender": "female",
+                        "descriptor": "ferme"
+                    },
+                    {
+                        "name": "Laomedeia",
+                        "gender": "female",
+                        "descriptor": "enjouée"
+                    },
+                    {
+                        "name": "Leda",
+                        "gender": "female",
+                        "descriptor": "jeune"
+                    },
+                    {
+                        "name": "Orus",
+                        "gender": "male",
+                        "descriptor": "ferme"
+                    },
+                    {
+                        "name": "Puck",
+                        "gender": "male",
+                        "descriptor": "enjouée"
+                    },
+                    {
+                        "name": "Pulcherrima",
+                        "gender": "female",
+                        "descriptor": "directe"
+                    },
+                    {
+                        "name": "Rasalgethi",
+                        "gender": "male",
+                        "descriptor": "informative"
+                    },
+                    {
+                        "name": "Sadachbia",
+                        "gender": "male",
+                        "descriptor": "vive"
+                    },
+                    {
+                        "name": "Sadaltager",
+                        "gender": "male",
+                        "descriptor": "savante"
+                    },
+                    {
+                        "name": "Schedar",
+                        "gender": "male",
+                        "descriptor": "posée"
+                    },
+                    {
+                        "name": "Sulafat",
+                        "gender": "female",
+                        "descriptor": "chaleureuse"
+                    },
+                    {
+                        "name": "Umbriel",
+                        "gender": "male",
+                        "descriptor": "décontractée"
+                    },
+                    {
+                        "name": "Vindemiatrix",
+                        "gender": "female",
+                        "descriptor": "délicate"
+                    },
+                    {
+                        "name": "Zephyr",
+                        "gender": "female",
+                        "descriptor": "lumineuse"
+                    },
+                    {
+                        "name": "Zubenelgenubi",
+                        "gender": "male",
+                        "descriptor": "familière"
+                    }
+                ],
+                "animations": {
+                    "idle": [
+                        {
+                            "key": "calm",
+                            "label": "Posé"
+                        },
+                        {
+                            "key": "curious",
+                            "label": "Curieux"
+                        },
+                        {
+                            "key": "dreamy",
+                            "label": "Rêveur"
+                        },
+                        {
+                            "key": "breathing",
+                            "label": "Respiration"
+                        },
+                        {
+                            "key": "sleepy",
+                            "label": "Somnolent"
+                        },
+                        {
+                            "key": "observer",
+                            "label": "Observateur"
+                        },
+                        {
+                            "key": "playful",
+                            "label": "Espiègle"
+                        },
+                        {
+                            "key": "still",
+                            "label": "Immobile"
+                        }
+                    ],
+                    "listening": [
+                        {
+                            "key": "attentive",
+                            "label": "Attentif"
+                        },
+                        {
+                            "key": "curious",
+                            "label": "Curieux"
+                        },
+                        {
+                            "key": "patient",
+                            "label": "Patient"
+                        },
+                        {
+                            "key": "nodding",
+                            "label": "Approbateur"
+                        },
+                        {
+                            "key": "tilted",
+                            "label": "Intrigué"
+                        },
+                        {
+                            "key": "focused",
+                            "label": "Concentré"
+                        },
+                        {
+                            "key": "still",
+                            "label": "Immobile"
+                        }
+                    ],
+                    "talking": [
+                        {
+                            "key": "calm",
+                            "label": "Posé"
+                        },
+                        {
+                            "key": "nod",
+                            "label": "Hochements"
+                        },
+                        {
+                            "key": "lean",
+                            "label": "Penché"
+                        },
+                        {
+                            "key": "expressive",
+                            "label": "Expressif"
+                        },
+                        {
+                            "key": "thoughtful",
+                            "label": "Pensif"
+                        },
+                        {
+                            "key": "still",
+                            "label": "Immobile"
+                        }
+                    ]
+                },
+                "tuning": {
+                    "idle": {
+                        "amplitude": [
+                            0.5,
+                            1.5
+                        ],
+                        "speed": [
+                            0.5,
+                            1.5
+                        ]
+                    },
+                    "listening": {
+                        "amplitude": [
+                            0.5,
+                            1.5
+                        ],
+                        "speed": [
+                            0.5,
+                            1.5
+                        ]
+                    },
+                    "talking": {
+                        "amplitude": [
+                            0.5,
+                            1.0
+                        ],
+                        "speed": [
+                            0.5,
+                            1.5
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "RobotEvent": [
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "session_start"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "user_delta",
+            "turn_id": "u1",
+            "text": "Mets de la "
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "user_end",
+            "turn_id": "u1",
+            "text": "Mets de la musique.",
+            "typed": false
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "phase",
+            "phase": "thinking"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "tool_call",
+            "call_id": "c1",
+            "name": "play_music",
+            "args": {
+                "query": "Daft Punk"
+            }
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "tool_result",
+            "call_id": "c1",
+            "name": "play_music",
+            "status": "ok",
+            "message": "Lecture lancée : One More Time, Daft Punk.",
+            "data": {
+                "track": {
+                    "title": "One More Time",
+                    "artist": "Daft Punk",
+                    "uri": "spotify:track:0DiWol3AO6WpXZgp0goxAV"
+                },
+                "image_base64": null,
+                "volume": null
+            }
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "tool_result",
+            "call_id": "c2",
+            "name": "look",
+            "status": "ok",
+            "message": "Voici ce que voit ta caméra.",
+            "data": {
+                "track": null,
+                "image_base64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP8=",
+                "volume": null
+            }
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "tool_result",
+            "call_id": "c3",
+            "name": "music",
+            "status": "error",
+            "message": "Spotify ne répond pas : aucun appareil n'est disponible.",
+            "data": {
+                "track": null,
+                "image_base64": null,
+                "volume": null
+            }
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "robot_delta",
+            "turn_id": "r1",
+            "text": "C'est parti"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "robot_end",
+            "turn_id": "r1",
+            "text": "C'est parti !"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "latency",
+            "turn_id": "r1",
+            "ms": 640
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "usage",
+            "prompt": {
+                "text": 1800,
+                "audio": 250,
+                "image": 0
+            },
+            "response": {
+                "text": 0,
+                "audio": 120,
+                "image": 0
+            },
+            "total_tokens": 2170,
+            "cost_usd": 0.0036,
+            "session_cost_usd": 0.0125
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "scene",
+            "scene_id": "fete-surprise",
+            "title": "La fête surprise",
+            "state": "line",
+            "line": 7,
+            "message": null
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "scene",
+            "scene_id": "fete-surprise",
+            "title": "La fête surprise",
+            "state": "waiting",
+            "line": 9,
+            "message": "Surprise ! Joyeux anniversaire !"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "scene",
+            "scene_id": "fete-surprise",
+            "title": "La fête surprise",
+            "state": "stopped",
+            "line": null,
+            "message": "Arrêtée depuis le tableau de bord."
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "manette",
+            "state": "on",
+            "profile": "volant",
+            "why": null
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "manette",
+            "state": "returning",
+            "profile": "volant",
+            "why": null
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "manette",
+            "state": "off",
+            "profile": null,
+            "why": "lease"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "replay",
+            "state": "started",
+            "seconds": 2.48,
+            "loops": 4
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "replay",
+            "state": "ended",
+            "seconds": null,
+            "loops": null
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "hush",
+            "on": true,
+            "why": null
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "hush",
+            "on": false,
+            "why": "antenna"
+        },
+        {
+            "session_id": "s-20261030-0001",
+            "kind": "session_end",
+            "reason": "goto_sleep"
+        }
+    ],
+    "SessionSnapshot": [
+        {
+            "awake": true,
+            "session_id": "s-20261030-0001",
+            "phase": "speaking",
+            "cost_usd": 0.0125,
+            "last_latency_ms": 640,
+            "manette": null,
+            "antenna_wake": true,
+            "scene": null,
+            "hushed": false
+        },
+        {
+            "awake": false,
+            "session_id": null,
+            "phase": null,
+            "cost_usd": 0.0,
+            "last_latency_ms": null,
+            "manette": null,
+            "antenna_wake": true,
+            "scene": null,
+            "hushed": false
+        },
+        {
+            "awake": false,
+            "session_id": null,
+            "phase": null,
+            "cost_usd": 0.0,
+            "last_latency_ms": null,
+            "manette": null,
+            "antenna_wake": false,
+            "scene": null,
+            "hushed": false
+        },
+        {
+            "awake": false,
+            "session_id": null,
+            "phase": null,
+            "cost_usd": 0.0,
+            "last_latency_ms": null,
+            "manette": null,
+            "antenna_wake": false,
+            "scene": "fete-surprise",
+            "hushed": false
+        }
+    ],
+    "DashboardState": [
+        {
+            "robot_status": "live",
+            "session": {
+                "awake": true,
+                "session_id": "s-20261030-0001",
+                "phase": "speaking",
+                "cost_usd": 0.0125,
+                "last_latency_ms": 640,
+                "manette": null,
+                "antenna_wake": true,
+                "scene": null,
+                "hushed": false
+            },
+            "volume": 70
+        }
+    ],
+    "Volume": [
+        {
+            "volume": 0
+        },
+        {
+            "volume": 100
+        }
+    ],
+    "WsMessage": [
+        {
+            "channel": "conversation",
+            "data": {
+                "session_id": "s-20261030-0001",
+                "kind": "tool_call",
+                "call_id": "c1",
+                "name": "play_music",
+                "args": {
+                    "query": "Daft Punk"
+                }
+            }
+        },
+        {
+            "channel": "session",
+            "data": {
+                "awake": true,
+                "session_id": "s-20261030-0001",
+                "phase": "speaking",
+                "cost_usd": 0.0125,
+                "last_latency_ms": 640,
+                "manette": null,
+                "antenna_wake": true,
+                "scene": null,
+                "hushed": false
+            }
+        },
+        {
+            "channel": "robot_status",
+            "data": {
+                "status": "live"
+            }
+        },
+        {
+            "channel": "settings",
+            "data": {
+                "settings": {
+                    "name": "Reachy",
+                    "voice": "Achird",
+                    "personality": "",
+                    "idle_animation": "calm",
+                    "listening_animation": "attentive",
+                    "talking_animation": "calm",
+                    "tuning": {
+                        "idle": {
+                            "amplitude": 1.0,
+                            "speed": 1.0
+                        },
+                        "listening": {
+                            "amplitude": 1.0,
+                            "speed": 1.0
+                        },
+                        "talking": {
+                            "amplitude": 1.0,
+                            "speed": 1.0
+                        }
+                    },
+                    "web_search": true,
+                    "gaze_tracking": false,
+                    "idle_sleep_minutes": 3,
+                    "apps_model": "opus",
+                    "apps_effort": "high"
+                },
+                "system_prompt": "Tu es Reachy, un petit robot de bureau.",
+                "web_prompt": "Tu peux chercher sur le web.",
+                "options": {
+                    "voices": [
+                        {
+                            "name": "Achernar",
+                            "gender": "female",
+                            "descriptor": "douce"
+                        },
+                        {
+                            "name": "Achird",
+                            "gender": "male",
+                            "descriptor": "amicale"
+                        },
+                        {
+                            "name": "Algenib",
+                            "gender": "male",
+                            "descriptor": "éraillée"
+                        },
+                        {
+                            "name": "Algieba",
+                            "gender": "male",
+                            "descriptor": "fluide"
+                        },
+                        {
+                            "name": "Alnilam",
+                            "gender": "male",
+                            "descriptor": "ferme"
+                        },
+                        {
+                            "name": "Aoede",
+                            "gender": "female",
+                            "descriptor": "légère"
+                        },
+                        {
+                            "name": "Autonoe",
+                            "gender": "female",
+                            "descriptor": "lumineuse"
+                        },
+                        {
+                            "name": "Callirrhoe",
+                            "gender": "female",
+                            "descriptor": "décontractée"
+                        },
+                        {
+                            "name": "Charon",
+                            "gender": "male",
+                            "descriptor": "informative"
+                        },
+                        {
+                            "name": "Despina",
+                            "gender": "female",
+                            "descriptor": "fluide"
+                        },
+                        {
+                            "name": "Enceladus",
+                            "gender": "male",
+                            "descriptor": "voilée"
+                        },
+                        {
+                            "name": "Erinome",
+                            "gender": "female",
+                            "descriptor": "claire"
+                        },
+                        {
+                            "name": "Fenrir",
+                            "gender": "male",
+                            "descriptor": "exaltée"
+                        },
+                        {
+                            "name": "Gacrux",
+                            "gender": "female",
+                            "descriptor": "mûre"
+                        },
+                        {
+                            "name": "Iapetus",
+                            "gender": "male",
+                            "descriptor": "claire"
+                        },
+                        {
+                            "name": "Kore",
+                            "gender": "female",
+                            "descriptor": "ferme"
+                        },
+                        {
+                            "name": "Laomedeia",
+                            "gender": "female",
+                            "descriptor": "enjouée"
+                        },
+                        {
+                            "name": "Leda",
+                            "gender": "female",
+                            "descriptor": "jeune"
+                        },
+                        {
+                            "name": "Orus",
+                            "gender": "male",
+                            "descriptor": "ferme"
+                        },
+                        {
+                            "name": "Puck",
+                            "gender": "male",
+                            "descriptor": "enjouée"
+                        },
+                        {
+                            "name": "Pulcherrima",
+                            "gender": "female",
+                            "descriptor": "directe"
+                        },
+                        {
+                            "name": "Rasalgethi",
+                            "gender": "male",
+                            "descriptor": "informative"
+                        },
+                        {
+                            "name": "Sadachbia",
+                            "gender": "male",
+                            "descriptor": "vive"
+                        },
+                        {
+                            "name": "Sadaltager",
+                            "gender": "male",
+                            "descriptor": "savante"
+                        },
+                        {
+                            "name": "Schedar",
+                            "gender": "male",
+                            "descriptor": "posée"
+                        },
+                        {
+                            "name": "Sulafat",
+                            "gender": "female",
+                            "descriptor": "chaleureuse"
+                        },
+                        {
+                            "name": "Umbriel",
+                            "gender": "male",
+                            "descriptor": "décontractée"
+                        },
+                        {
+                            "name": "Vindemiatrix",
+                            "gender": "female",
+                            "descriptor": "délicate"
+                        },
+                        {
+                            "name": "Zephyr",
+                            "gender": "female",
+                            "descriptor": "lumineuse"
+                        },
+                        {
+                            "name": "Zubenelgenubi",
+                            "gender": "male",
+                            "descriptor": "familière"
+                        }
+                    ],
+                    "animations": {
+                        "idle": [
+                            {
+                                "key": "calm",
+                                "label": "Posé"
+                            },
+                            {
+                                "key": "curious",
+                                "label": "Curieux"
+                            },
+                            {
+                                "key": "dreamy",
+                                "label": "Rêveur"
+                            },
+                            {
+                                "key": "breathing",
+                                "label": "Respiration"
+                            },
+                            {
+                                "key": "sleepy",
+                                "label": "Somnolent"
+                            },
+                            {
+                                "key": "observer",
+                                "label": "Observateur"
+                            },
+                            {
+                                "key": "playful",
+                                "label": "Espiègle"
+                            },
+                            {
+                                "key": "still",
+                                "label": "Immobile"
+                            }
+                        ],
+                        "listening": [
+                            {
+                                "key": "attentive",
+                                "label": "Attentif"
+                            },
+                            {
+                                "key": "curious",
+                                "label": "Curieux"
+                            },
+                            {
+                                "key": "patient",
+                                "label": "Patient"
+                            },
+                            {
+                                "key": "nodding",
+                                "label": "Approbateur"
+                            },
+                            {
+                                "key": "tilted",
+                                "label": "Intrigué"
+                            },
+                            {
+                                "key": "focused",
+                                "label": "Concentré"
+                            },
+                            {
+                                "key": "still",
+                                "label": "Immobile"
+                            }
+                        ],
+                        "talking": [
+                            {
+                                "key": "calm",
+                                "label": "Posé"
+                            },
+                            {
+                                "key": "nod",
+                                "label": "Hochements"
+                            },
+                            {
+                                "key": "lean",
+                                "label": "Penché"
+                            },
+                            {
+                                "key": "expressive",
+                                "label": "Expressif"
+                            },
+                            {
+                                "key": "thoughtful",
+                                "label": "Pensif"
+                            },
+                            {
+                                "key": "still",
+                                "label": "Immobile"
+                            }
+                        ]
+                    },
+                    "tuning": {
+                        "idle": {
+                            "amplitude": [
+                                0.5,
+                                1.5
+                            ],
+                            "speed": [
+                                0.5,
+                                1.5
+                            ]
+                        },
+                        "listening": {
+                            "amplitude": [
+                                0.5,
+                                1.5
+                            ],
+                            "speed": [
+                                0.5,
+                                1.5
+                            ]
+                        },
+                        "talking": {
+                            "amplitude": [
+                                0.5,
+                                1.0
+                            ],
+                            "speed": [
+                                0.5,
+                                1.5
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "channel": "volume",
+            "data": {
+                "volume": 70
+            }
+        },
+        {
+            "channel": "pose",
+            "data": {
+                "t": 1793469318504.6,
+                "j": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "m": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "a": [
+                    -0.1745,
+                    0.1745
+                ]
+            }
+        },
+        {
+            "channel": "voice",
+            "data": {
+                "level": 0.42
+            }
+        },
+        {
+            "channel": "scene_render",
+            "data": {
+                "scene_id": "fete-surprise",
+                "done": 7,
+                "total": 13,
+                "error": null
+            }
+        },
+        {
+            "channel": "scene_build",
+            "data": {
+                "id": "5e5510000a1b0c2d",
+                "request": "Deux personnages débattent de la dualité onde-corpuscule",
+                "voiced": true,
+                "status": "building",
+                "error": null,
+                "warning": null,
+                "started_at": 1793469318.5,
+                "ended_at": null,
+                "scene_id": null,
+                "title": null,
+                "write": "running",
+                "stage": "waiting",
+                "voice": "waiting",
+                "phase": "writing",
+                "thinking_tokens": 1240,
+                "round": 1,
+                "problems": [],
+                "text": "@GAUCHE (Kore, 35) : physicienne pointilleuse\n\nGAUCHE : Il est passé par moi.",
+                "moves": 0,
+                "voices_done": 0,
+                "voices_total": 0,
+                "cost_usd": null
+            }
+        },
+        {
+            "channel": "apps",
+            "data": {
+                "app": {
+                    "id": "a1b2c3d4e5f60718",
+                    "title": "Morpion",
+                    "status": "building",
+                    "created_at": 1790000000.0,
+                    "updated_at": 1790000000.0,
+                    "error": null,
+                    "quiet": true,
+                    "builtin": false,
+                    "edited": false
+                },
+                "open": true,
+                "deleted": false
+            }
+        },
+        {
+            "channel": "app_build",
+            "data": {
+                "app_id": "a1b2c3d4e5f60718",
+                "kind": "create",
+                "phase": "writing",
+                "round": 1,
+                "started_at": 1790000000.0,
+                "thinking_tokens": 10400,
+                "chars": 6120,
+                "tail": "  <button id=\"jouer\">Jouer</button>\n</main>\n<script>",
+                "edits": [],
+                "problems": [],
+                "cost_usd": null
+            }
+        },
+        {
+            "channel": "app_build",
+            "data": {
+                "app_id": "a1b2c3d4e5f60718",
+                "kind": "update",
+                "phase": "editing",
+                "round": 2,
+                "started_at": 1790000000.0,
+                "thinking_tokens": 0,
+                "chars": 0,
+                "tail": "",
+                "edits": [
+                    {
+                        "old": "--serpent: #3BD16F;",
+                        "new": "--serpent: #8B5CF6;"
+                    }
+                ],
+                "problems": [
+                    "le test « score » donne 0.0 au lieu de 1.0"
+                ],
+                "cost_usd": 0.17
+            }
+        }
+    ],
+    "PreviewFrames": [
+        {
+            "hz": 30,
+            "head": [
+                [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            ],
+            "antennas": [
+                [
+                    -0.1745,
+                    0.1745
+                ],
+                [
+                    -0.1745,
+                    0.1745
+                ]
+            ],
+            "body": [
+                0.0,
+                0.0
+            ]
+        }
+    ],
+    "SceneList": [
+        {
+            "scenes": [
+                {
+                    "id": "fete-surprise",
+                    "title": "La fête surprise",
+                    "builtin": true,
+                    "errors": 0,
+                    "segments": 15,
+                    "rendered": 15
+                }
+            ]
+        }
+    ],
+    "SceneOut": [
+        {
+            "id": "fete-surprise",
+            "title": "La fête surprise",
+            "text": "@NARRATEUR (Charon) : conteur",
+            "builtin": true,
+            "check": {
+                "cast": [
+                    {
+                        "name": "NARRATEUR",
+                        "voice": "Charon",
+                        "acting": "conteur malicieux",
+                        "angle": -60.0
+                    }
+                ],
+                "cues": [
+                    {
+                        "line": 1,
+                        "end_line": 2,
+                        "kind": "say",
+                        "character": "NARRATEUR",
+                        "text": "Il était une fois…",
+                        "voice": "Charon",
+                        "style": "",
+                        "key": "k1",
+                        "ready": false,
+                        "name": null,
+                        "degrees": null,
+                        "seconds": null
+                    },
+                    {
+                        "line": 3,
+                        "end_line": null,
+                        "kind": "emotion",
+                        "character": null,
+                        "text": null,
+                        "voice": null,
+                        "style": null,
+                        "key": null,
+                        "ready": false,
+                        "name": "cheerful1",
+                        "degrees": null,
+                        "seconds": null
+                    },
+                    {
+                        "line": 3,
+                        "end_line": null,
+                        "kind": "pause",
+                        "character": null,
+                        "text": null,
+                        "voice": null,
+                        "style": null,
+                        "key": null,
+                        "ready": false,
+                        "name": null,
+                        "degrees": null,
+                        "seconds": 1.5
+                    },
+                    {
+                        "line": 4,
+                        "end_line": null,
+                        "kind": "turn",
+                        "character": null,
+                        "text": null,
+                        "voice": null,
+                        "style": null,
+                        "key": null,
+                        "ready": false,
+                        "name": null,
+                        "degrees": -35.0,
+                        "seconds": null
+                    }
+                ],
+                "errors": [
+                    {
+                        "line": 8,
+                        "message": "[triste] n'est ni une émotion, ni un geste, ni une pause (veux-tu dire [sad1] ?)"
+                    }
+                ],
+                "warnings": [
+                    {
+                        "line": 4,
+                        "message": "[tourne 160] : limité à 100°"
+                    }
+                ],
+                "segments": 1,
+                "rendered": 0
+            },
+            "edited": false
+        }
+    ],
+    "SceneCheck": [
+        {
+            "cast": [
+                {
+                    "name": "NARRATEUR",
+                    "voice": "Charon",
+                    "acting": "conteur malicieux",
+                    "angle": -60.0
+                }
+            ],
+            "cues": [
+                {
+                    "line": 1,
+                    "end_line": 2,
+                    "kind": "say",
+                    "character": "NARRATEUR",
+                    "text": "Il était une fois…",
+                    "voice": "Charon",
+                    "style": "",
+                    "key": "k1",
+                    "ready": false,
+                    "name": null,
+                    "degrees": null,
+                    "seconds": null
+                },
+                {
+                    "line": 3,
+                    "end_line": null,
+                    "kind": "emotion",
+                    "character": null,
+                    "text": null,
+                    "voice": null,
+                    "style": null,
+                    "key": null,
+                    "ready": false,
+                    "name": "cheerful1",
+                    "degrees": null,
+                    "seconds": null
+                },
+                {
+                    "line": 3,
+                    "end_line": null,
+                    "kind": "pause",
+                    "character": null,
+                    "text": null,
+                    "voice": null,
+                    "style": null,
+                    "key": null,
+                    "ready": false,
+                    "name": null,
+                    "degrees": null,
+                    "seconds": 1.5
+                },
+                {
+                    "line": 4,
+                    "end_line": null,
+                    "kind": "turn",
+                    "character": null,
+                    "text": null,
+                    "voice": null,
+                    "style": null,
+                    "key": null,
+                    "ready": false,
+                    "name": null,
+                    "degrees": -35.0,
+                    "seconds": null
+                }
+            ],
+            "errors": [
+                {
+                    "line": 8,
+                    "message": "[triste] n'est ni une émotion, ni un geste, ni une pause (veux-tu dire [sad1] ?)"
+                }
+            ],
+            "warnings": [
+                {
+                    "line": 4,
+                    "message": "[tourne 160] : limité à 100°"
+                }
+            ],
+            "segments": 1,
+            "rendered": 0
+        }
+    ],
+    "SceneEmotions": [
+        {
+            "text": "MARCO : [inquiring1] Alors ? [sad1] Rien.",
+            "added": 2
+        }
+    ],
+    "SceneBuild": [
+        {
+            "id": "5e5510000a1b0c2d",
+            "request": "Deux personnages débattent de la dualité onde-corpuscule",
+            "voiced": true,
+            "status": "building",
+            "error": null,
+            "warning": null,
+            "started_at": 1793469318.5,
+            "ended_at": null,
+            "scene_id": null,
+            "title": null,
+            "write": "running",
+            "stage": "waiting",
+            "voice": "waiting",
+            "phase": "writing",
+            "thinking_tokens": 1240,
+            "round": 1,
+            "problems": [],
+            "text": "@GAUCHE (Kore, 35) : physicienne pointilleuse\n\nGAUCHE : Il est passé par moi.",
+            "moves": 0,
+            "voices_done": 0,
+            "voices_total": 0,
+            "cost_usd": null
+        },
+        {
+            "id": "5e5510000a1b0c2d",
+            "request": "Deux personnages débattent de la dualité onde-corpuscule",
+            "voiced": true,
+            "status": "ready",
+            "error": null,
+            "warning": null,
+            "started_at": 1793469318.5,
+            "ended_at": 1793469402.1,
+            "scene_id": "deux-fentes",
+            "title": "Les deux fentes",
+            "write": "done",
+            "stage": "done",
+            "voice": "done",
+            "phase": "writing",
+            "thinking_tokens": 1240,
+            "round": 1,
+            "problems": [],
+            "text": "@GAUCHE (Kore, 35) : physicienne pointilleuse\n\nGAUCHE : [curious1] Il est passé par moi.",
+            "moves": 12,
+            "voices_done": 19,
+            "voices_total": 19,
+            "cost_usd": 0.1312
+        },
+        {
+            "id": "5e5510000a1b0c2d",
+            "request": "Deux personnages débattent de la dualité onde-corpuscule",
+            "voiced": false,
+            "status": "failed",
+            "error": "La scène écrite ne peut pas se jouer : ligne 1 : voix inconnue : « Personne ».",
+            "warning": null,
+            "started_at": 1793469318.5,
+            "ended_at": 1793469350.0,
+            "scene_id": null,
+            "title": null,
+            "write": "failed",
+            "stage": "waiting",
+            "voice": "waiting",
+            "phase": "writing",
+            "thinking_tokens": 1240,
+            "round": 2,
+            "problems": [
+                "ligne 1 : voix inconnue : « Personne »"
+            ],
+            "text": "@GAUCHE (Kore, 35) : physicienne pointilleuse\n\nGAUCHE : Il est passé par moi.",
+            "moves": 0,
+            "voices_done": 0,
+            "voices_total": 0,
+            "cost_usd": null
+        }
+    ],
+    "SceneBuilds": [
+        {
+            "builds": [
+                {
+                    "id": "5e5510000a1b0c2d",
+                    "request": "Deux personnages débattent de la dualité onde-corpuscule",
+                    "voiced": true,
+                    "status": "building",
+                    "error": null,
+                    "warning": null,
+                    "started_at": 1793469318.5,
+                    "ended_at": null,
+                    "scene_id": null,
+                    "title": null,
+                    "write": "running",
+                    "stage": "waiting",
+                    "voice": "waiting",
+                    "phase": "writing",
+                    "thinking_tokens": 1240,
+                    "round": 1,
+                    "problems": [],
+                    "text": "@GAUCHE (Kore, 35) : physicienne pointilleuse\n\nGAUCHE : Il est passé par moi.",
+                    "moves": 0,
+                    "voices_done": 0,
+                    "voices_total": 0,
+                    "cost_usd": null
+                },
+                {
+                    "id": "5e5510000a1b0c2d",
+                    "request": "Deux personnages débattent de la dualité onde-corpuscule",
+                    "voiced": true,
+                    "status": "ready",
+                    "error": null,
+                    "warning": null,
+                    "started_at": 1793469318.5,
+                    "ended_at": 1793469402.1,
+                    "scene_id": "deux-fentes",
+                    "title": "Les deux fentes",
+                    "write": "done",
+                    "stage": "done",
+                    "voice": "done",
+                    "phase": "writing",
+                    "thinking_tokens": 1240,
+                    "round": 1,
+                    "problems": [],
+                    "text": "@GAUCHE (Kore, 35) : physicienne pointilleuse\n\nGAUCHE : [curious1] Il est passé par moi.",
+                    "moves": 12,
+                    "voices_done": 19,
+                    "voices_total": 19,
+                    "cost_usd": 0.1312
+                }
+            ]
+        }
+    ],
+    "SceneVocabulary": [
+        {
+            "emotions": [
+                {
+                    "word": "cheerful1",
+                    "label": "Joyeux",
+                    "family": "Joie"
+                }
+            ],
+            "gestures": [
+                {
+                    "word": "hoche la tête",
+                    "label": "Oui de la tête",
+                    "family": ""
+                }
+            ],
+            "turns": [
+                {
+                    "word": "tourne à gauche",
+                    "label": "Se tourner à gauche",
+                    "family": ""
+                }
+            ],
+            "pauses": [
+                {
+                    "word": "pause 2",
+                    "label": "Pause de 2 s",
+                    "family": ""
+                }
+            ],
+            "sounds": [
+                {
+                    "word": "rire",
+                    "label": "Rire",
+                    "family": ""
+                }
+            ],
+            "voices": [
+                {
+                    "word": "Charon",
+                    "label": "Charon — masculine, informative",
+                    "family": ""
+                }
+            ]
+        }
+    ],
+    "AppList": [
+        {
+            "apps": [
+                {
+                    "id": "90f7b5fe0f1771f0",
+                    "title": "Snake",
+                    "status": "ready",
+                    "created_at": 1790000000.0,
+                    "updated_at": 1790000000.0,
+                    "error": null,
+                    "quiet": true,
+                    "builtin": false,
+                    "edited": false
+                },
+                {
+                    "id": "a1b2c3d4e5f60718",
+                    "title": "Morpion",
+                    "status": "building",
+                    "created_at": 1790000000.0,
+                    "updated_at": 1790000000.0,
+                    "error": null,
+                    "quiet": true,
+                    "builtin": false,
+                    "edited": false
+                },
+                {
+                    "id": "slalom",
+                    "title": "Slalom",
+                    "status": "ready",
+                    "created_at": 1790000000.0,
+                    "updated_at": 1790000000.0,
+                    "error": null,
+                    "quiet": true,
+                    "builtin": true,
+                    "edited": false
+                }
+            ]
+        }
+    ],
+    "AppHtml": [
+        {
+            "id": "90f7b5fe0f1771f0",
+            "html": "<!doctype html><html lang=\"fr\"><head><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'\"></head><body></body></html>"
+        }
+    ]
+}
