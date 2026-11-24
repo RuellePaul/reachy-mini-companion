@@ -1,0 +1,102 @@
+# Every push to main and every pull request: the same gates as `make lint`, `make test` and the size budget.
+# Each action is the commit of the release named beside it, and each job a named runner image: a tag or a
+# `-latest` label can move, and CI would change without a commit.
+name: CI
+
+on:
+    push:
+        branches: [main]
+    # Whatever its base: a pull request stacked on another one is checked too. `edited`: once retargeted (by hand, or
+    # when the branch it was stacked on merges) it is checked against its new base. A title or body edit runs it again:
+    # a job skipped on that edit would replace the last result in the pull request's checks, a failure included.
+    pull_request:
+        types: [opened, synchronize, reopened, edited]
+
+# A pull request's newer push cancels its older run. A push to a branch gets a group of its own: in a shared group a
+# newer run cancels the running one and replaces the pending one, so merges in quick succession left commits untested.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+    cancel-in-progress: true
+
+jobs:
+    python:
+        name: Python ${{ matrix.python }}
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15 # a test waiting on a broadcast that never comes must not hang for hours
+        strategy:
+            fail-fast: false # one Python's failure would cancel the other's run, and its results with it
+            matrix:
+                python: ['3.11', '3.12'] # the declared floor, and the robot's and the Mac's version
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Install uv
+              uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+              with:
+                  # A release, not the latest at each run: this uv judges `uv sync --locked`. doctor asks it of the Mac.
+                  version: '0.13.7'
+                  enable-cache: true
+                  # The cache's key names this Python (else the runner's, found before the leg installs its own): each
+                  # leg restores its own compiled wheels. Also sets UV_PYTHON.
+                  python-version: ${{ matrix.python }}
+
+            # Exactly the versions of uv.lock: the Mac server's dependencies plus the dev extra, which
+            # carries the robot's own (google-genai, numpy, scipy, Pillow) so its tests run here.
+            - name: Install dependencies (uv.lock)
+              id: install
+              run: |
+                  uv python install ${{ matrix.python }}
+                  uv sync --locked --extra dev --python ${{ matrix.python }}
+
+            # Once installed, every check runs whichever failed before it: one run gives every result. With no
+            # status function in its `if:`, a step would run only after every earlier one succeeded. ruff (its target
+            # is pyproject.toml's floor) and the budget read no interpreter: one leg runs them, one slip one red check.
+            - name: Ruff check
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' && matrix.python == '3.12' }}
+              run: .venv/bin/ruff check robot_agent mac_server scripts tests
+
+            - name: Ruff format check
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' && matrix.python == '3.12' }}
+              run: .venv/bin/ruff format --check robot_agent mac_server scripts tests
+
+            - name: Pytest (offline)
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+              run: .venv/bin/pytest
+
+            - name: Size budget
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' && matrix.python == '3.12' }}
+              run: .venv/bin/python scripts/budget.py
+
+    frontend:
+        name: Frontend (prettier, eslint, tsc, knip, vitest)
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        defaults:
+            run:
+                working-directory: frontend
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Set up Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  # A release, not a major that moves: its npm is the floor frontend/package.json's engines set, and an
+                  # older npm refuses to write the lock (it drops entries this one's `npm ci` requires).
+                  node-version: '24.22.1' # its npm 11.19.1
+                  cache: 'npm'
+                  cache-dependency-path: frontend/package-lock.json
+
+            - id: install
+              run: npm ci
+
+            # Once installed, every check runs whichever failed before it, as in the python job.
+            - run: npx prettier --check .
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+            - run: npx eslint .
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+            - run: npx tsc -b
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+            - run: npx knip
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' }}
+            - run: npx vitest run
+              if: ${{ !cancelled() && steps.install.conclusion == 'success' }}

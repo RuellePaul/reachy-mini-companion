@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="reachy-quiet" content="oui">
+<title>Banc de manette</title>
+<style>
+:root {
+  /* Les couleurs du tableau de bord (--page, --encre, --ecoute…) viennent de la boîte à outils. */
+  --police: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Une couleur par partie du robot : la même sur la figure, sur son instrument et dans le journal. */
+  --antennes: var(--parle);
+  --tete: var(--pense);
+  --base: var(--sommeil);
+  --micro: var(--ecoute);
+  --coque: #C9CED6;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { display: flex; flex-direction: column; overflow: hidden; background: var(--creux); color: var(--encre); font: 14px/1.45 var(--police); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+h1, h2, p { margin: 0; }
+h1 { font-size: 15px; font-weight: 650; }
+h2 { font-size: 13px; font-weight: 600; color: var(--encre-2); }
+code { font-family: var(--code); font-size: 12px; color: var(--encre-2); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--parle); outline-offset: 2px; }
+button:disabled { cursor: default; opacity: .45; }
+[hidden] { display: none !important; }
+
+.barre { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 9px 16px; border-bottom: 1px solid var(--trait); background: var(--page); }
+.barre h1 { margin-right: auto; white-space: nowrap; }
+.pastille { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 12px; color: var(--encre-2); border: 1px solid var(--trait); }
+.pastille::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--point, var(--encre-3)); }
+.pastille[data-etat="oui"] { --point: var(--ecoute); color: var(--encre); }
+.pastille[data-etat="attente"] { --point: var(--attention); }
+.pastille[data-etat="dort"] { --point: var(--sommeil); }
+
+main { flex: 1; min-height: 0; display: grid; grid-template-columns: 236px minmax(0, 1fr) 300px; }
+.colonne { min-height: 0; overflow-y: auto; padding: 14px 16px; }
+#manettes { border-right: 1px solid var(--trait); background: var(--page); display: flex; flex-direction: column; gap: 12px; }
+#cote { border-left: 1px solid var(--trait); background: var(--page); display: flex; flex-direction: column; padding: 0; }
+#cote > section { padding: 11px 16px; border-bottom: 1px solid var(--trait); }
+#cote > section:last-child { border-bottom: 0; flex: 1 1 140px; min-height: 140px; display: flex; flex-direction: column; }
+
+/* ----- Les manettes : ce que chacune donne à la main ----- */
+.grille { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 30px); align-items: center; row-gap: 2px; }
+.grille .colonne-de { font-size: 10.5px; color: var(--encre-3); text-align: center; padding-bottom: 4px; }
+.profil { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; padding: 7px 0 7px 10px; border: 1px solid transparent; border-radius: 8px; background: none; text-align: left; }
+.profil:hover { background: var(--plaque); }
+.profil[aria-checked="true"] { background: var(--relief); border-color: var(--trait-fort); }
+.profil .nom { font-weight: 560; }
+.profil .nom { white-space: nowrap; }
+.profil[data-tenue="oui"] { box-shadow: inset 3px 0 0 var(--ecoute); }
+.profil[data-tenue="attente"] { box-shadow: inset 3px 0 0 var(--attention); }
+.donne { justify-self: center; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--trait-fort); }
+.donne[data-oui][data-partie="antennes"] { background: var(--antennes); border-color: var(--antennes); }
+.donne[data-oui][data-partie="base"] { background: var(--base); border-color: var(--base); }
+.donne[data-oui][data-partie="tete"] { background: var(--tete); border-color: var(--tete); }
+.donne[data-oui][data-partie="micro"] { background: var(--micro); border-color: var(--micro); }
+.bascule { display: flex; align-items: center; gap: 9px; padding: 2px 0 0 10px; font-size: 13px; color: var(--encre-2); background: none; border: 0; text-align: left; }
+.bascule::before { content: ""; flex: none; width: 28px; height: 16px; border-radius: 999px; background: var(--relief); border: 1px solid var(--trait-fort); box-shadow: inset 12px 0 0 -3px var(--encre-3); transition: box-shadow .12s; }
+.bascule[aria-pressed="true"] { color: var(--encre); }
+.bascule[aria-pressed="true"]::before { box-shadow: inset -12px 0 0 -3px var(--micro); border-color: var(--micro); }
+#fiche { padding-top: 12px; border-top: 1px solid var(--trait); display: flex; flex-direction: column; gap: 8px; }
+#fiche p { font-size: 13px; color: var(--encre-2); }
+#fiche .appel { color: var(--encre); }
+.actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 4px; }
+.bouton { padding: 9px 12px; border-radius: 9px; border: 1px solid var(--trait-fort); background: var(--relief); font-weight: 560; }
+.bouton:hover:not(:disabled) { border-color: var(--encre-3); }
+.bouton.premier { background: var(--parle); border-color: var(--parle); color: #16181B; }
+.bouton.petit { padding: 5px 9px; border-radius: 7px; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+.note { font-size: 12px; color: var(--encre-3); }
+
+/* ----- En direct : la figure, et un instrument par partie ----- */
+#consigne { font-size: 17px; font-weight: 560; line-height: 1.3; min-height: 44px; max-width: 46ch; }
+#consigne[data-ton="attente"] { color: var(--attention); }
+#consigne[data-ton="demo"] { color: var(--sommeil); }
+.scene { display: grid; grid-template-columns: minmax(150px, 204px) minmax(0, 1fr); gap: 8px 22px; align-items: start; margin-top: 6px; }
+#figure { width: 100%; height: auto; display: block; overflow: visible; }
+#figure .trait { fill: none; stroke: var(--coque); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+#figure .plein { fill: rgba(201, 206, 214, .05); }
+#figure [data-partie].a-toi { opacity: 1; }
+#figure [data-partie="antennes"].a-toi { stroke: var(--antennes); }
+#figure [data-partie="tete"].a-toi { stroke: var(--tete); }
+#figure [data-partie="base"].a-toi { stroke: var(--base); }
+#figure .bout { fill: var(--creux); }
+#figure .appuyee { stroke-width: 3.5; }
+#figure .appuyee .bout { fill: var(--antennes); }
+#figure .oeil { fill: var(--creux); }
+#figure .pupille { fill: var(--coque); stroke: none; opacity: .5; }
+#figure .a-toi .pupille { fill: var(--tete); opacity: 1; }
+#figure .onde { fill: none; stroke: var(--micro); stroke-width: 2; stroke-linecap: round; opacity: 0; }
+#figure .sol { fill: #000; opacity: .22; }
+#figure .derriere { stroke-dasharray: 3 4; }
+.legende { font-size: 12px; color: var(--encre-3); margin: 4px 0 12px; }
+
+.instrument { padding: 12px 0; border-top: 1px solid var(--trait); }
+.instruments > .instrument:first-child { padding-top: 0; border-top: 0; }
+.titre { display: flex; align-items: baseline; gap: 9px; margin-bottom: 9px; }
+.titre h2 { color: var(--encre); }
+.titre h2::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--teinte); }
+.instrument[data-partie="antennes"] { --teinte: var(--antennes); }
+.instrument[data-partie="tete"] { --teinte: var(--tete); }
+.instrument[data-partie="base"] { --teinte: var(--base); }
+.instrument[data-partie="micro"] { --teinte: var(--micro); }
+.statut { font-size: 12px; color: var(--encre-3); }
+.instrument.a-toi .statut { color: var(--teinte); }
+.instrument:not(.a-toi) .jauges { opacity: .5; }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin-bottom: 6px; }
+.deux small { display: block; min-height: 34px; font-size: 11.5px; line-height: 1.45; color: var(--encre-3); font-variant-numeric: tabular-nums; }
+.cote-nom { font-size: 12px; color: var(--encre-3); margin-bottom: 4px; }
+.lectures { display: grid; grid-template-columns: auto auto 1fr; gap: 1px 10px; align-items: baseline; font-size: 13px; }
+.lectures output { font-variant-numeric: tabular-nums; text-align: right; min-width: 6ch; }
+.lectures small { font-size: 11.5px; color: var(--encre-3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.piste { position: relative; height: 14px; border-radius: 4px; background: var(--relief); margin: 2px 0 6px; overflow: hidden; }
+.piste .zone { position: absolute; top: 0; bottom: 0; background: var(--trait-fort); opacity: .55; }
+.piste .seuil { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--teinte); opacity: .7; }
+.piste .milieu { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--encre-3); }
+.piste .curseur { position: absolute; top: 1px; bottom: 1px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--encre); left: 50%; }
+.piste .plein { position: absolute; top: 3px; bottom: 3px; background: var(--teinte); opacity: .55; border-radius: 2px; }
+.piste .pic { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--teinte); }
+.tete-jauges { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 14px; align-items: start; }
+#manche, #cadran { width: 100%; height: auto; display: block; }
+svg .regle { fill: none; stroke: var(--trait-fort); stroke-width: 1; }
+svg .axe { stroke: var(--trait); stroke-width: 1; }
+svg .petit { fill: var(--encre-3); font: 9.5px var(--police); }
+#manche .exploree { fill: var(--tete); opacity: .1; }
+#manche .sillage { fill: none; stroke: var(--tete); stroke-width: 1.5; opacity: .45; stroke-linejoin: round; }
+#manche .point { fill: var(--tete); }
+#manche .penche { stroke: var(--tete); stroke-width: 2.5; stroke-linecap: round; }
+#cadran .aiguille-base { stroke: var(--base); stroke-width: 4; stroke-linecap: round; }
+#cadran .aiguille-tete { stroke: var(--tete); stroke-width: 2; stroke-linecap: round; }
+#cadran .socle { fill: var(--relief); stroke: var(--trait-fort); }
+#cadran { max-width: 112px; margin: 0 auto 6px; }
+.etendue { min-height: 17px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.toile { position: relative; height: 44px; border-radius: 6px; background: var(--relief); overflow: hidden; }
+
+/* ----- Le côté : la liaison, le rejeu, les mouvements, le journal ----- */
+.gros { font-size: 26px; font-weight: 620; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.gros small { font-size: 12.5px; font-weight: 400; color: var(--encre-2); margin-left: 7px; }
+.gros[data-ton="silence"] { color: var(--faute); }
+.gros[data-ton="repos"] span { color: var(--encre-3); }
+.chiffres { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; font-size: 12.5px; line-height: 1.42; color: var(--encre-2); margin: 6px 0 8px; }
+.chiffres output { font-variant-numeric: tabular-nums; color: var(--encre); text-align: right; }
+.chiffres output[data-ton="faute"] { color: var(--faute); }
+.chiffres output[data-ton="attention"] { color: var(--attention); }
+.entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; min-height: 26px; }
+.rangee { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rangee + .rangee { margin-top: 6px; }
+.groupe { display: inline-flex; border: 1px solid var(--trait-fort); border-radius: 7px; overflow: hidden; }
+.groupe button { padding: 5px 9px; border: 0; border-left: 1px solid var(--trait-fort); background: var(--relief); font-size: 12.5px; white-space: nowrap; }
+.groupe button:first-child { border-left: 0; }
+.groupe span { padding: 5px 9px; font-size: 12.5px; color: var(--encre-2); }
+.pas { display: inline-flex; align-items: center; border: 1px solid var(--trait-fort); border-radius: 7px; overflow: hidden; }
+.pas button { width: 26px; height: 26px; border: 0; background: var(--relief); }
+.pas output { min-width: 5.5ch; text-align: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+#rejeu-etat, #mouvement-etat { font-size: 12px; color: var(--encre-3); margin-top: 7px; min-height: 34px; }
+#journal { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: 1.5; user-select: text; -webkit-user-select: text; }
+#journal li { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 1px 0; }
+#journal time { color: var(--encre-3); font-variant-numeric: tabular-nums; }
+#journal li[data-de="antennes"] span { color: var(--antennes); }
+#journal li[data-de="liaison"] span { color: var(--attention); }
+#journal li[data-de="demande"] span { color: var(--encre-2); font-family: var(--code); font-size: 11.5px; }
+#journal .vide { color: var(--encre-3); display: block; }
+
+@media (min-width: 1300px) {
+  main { grid-template-columns: 250px minmax(0, 1fr) 360px; }
+  .scene { grid-template-columns: 250px minmax(0, 560px); gap: 8px 32px; }
+}
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  main { display: block; }
+  .colonne { overflow: visible; }
+  #manettes { border-right: 0; border-bottom: 1px solid var(--trait); }
+  #cote { border-left: 0; border-top: 1px solid var(--trait); }
+  .actions { margin-top: 0; }
+  #journal { max-height: 220px; }
+}
+@media (max-width: 520px) {
+  .scene { grid-template-columns: 1fr; }
+  #figure { max-width: 190px; margin: 0 auto; }
+  .legende { text-align: center; }
+  .tete-jauges { grid-template-columns: 110px minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="barre">
+  <h1>Banc de manette</h1>
+  <span class="pastille" id="etat-robot"></span>
+  <span class="pastille" id="etat-manette"></span>
+</div>
+<main>
+  <nav class="colonne" id="manettes" aria-label="Manettes">
+    <div class="grille" role="radiogroup" aria-label="La manette à essayer">
+      <span></span>
+      <span class="colonne-de">ant.</span><span class="colonne-de">base</span><span class="colonne-de">tête</span><span class="colonne-de">micro</span>
+      <button class="profil" role="radio" data-corps="gachettes"><span class="nom">Gâchettes</span><i class="donne" data-partie="antennes"></i><i class="donne" data-partie="base"></i><i class="donne" data-partie="tete"></i><i class="donne" data-partie="micro"></i></button>
+      <button class="profil" role="radio" data-corps="volant"><span class="nom">Volant</span><i class="donne" data-partie="antennes"></i><i class="donne" data-partie="base"></i><i class="donne" data-partie="tete"></i><i class="donne" data-partie="micro"></i></button>
+      <button class="profil" role="radio" data-corps="paume"><span class="nom">Paume</span><i class="donne" data-partie="antennes"></i><i class="donne" data-partie="base"></i><i class="donne" data-partie="tete"></i><i class="donne" data-partie="micro"></i></button>
+      <button class="profil" role="radio" data-corps="tete"><span class="nom">Tête</span><i class="donne" data-partie="antennes"></i><i class="donne" data-partie="base"></i><i class="donne" data-partie="tete"></i><i class="donne" data-partie="micro"></i></button>
+      <button class="profil" role="radio" data-corps="voix"><span class="nom">Voix seule</span><i class="donne" data-partie="antennes"></i><i class="donne" data-partie="base"></i><i class="donne" data-partie="tete"></i><i class="donne" data-partie="micro"></i></button>
+    </div>
+    <button class="bascule" id="avec-micro" aria-pressed="false">Écouter aussi son micro</button>
+    <div id="fiche">
+      <p class="appel"><code id="fiche-appel"></code></p>
+      <p id="fiche-quoi"></p>
+      <p id="fiche-rendu"></p>
+    </div>
+    <div class="actions">
+      <button class="bouton premier" id="prendre">Prendre la manette</button>
+      <button class="bouton" id="rendre" hidden>Rendre la manette</button>
+      <button class="bouton" id="demo" hidden>Voir une démonstration</button>
+      <p class="note">Au clavier&nbsp;: 1 à 5 pour choisir, M pour le micro, Entrée pour prendre, Échap pour rendre.</p>
+    </div>
+  </nav>
+
+  <section class="colonne" id="direct" aria-label="La manette en direct">
+    <p id="consigne" aria-live="polite">Choisis une manette, puis prends-la.</p>
+    <div class="scene">
+      <div>
+        <svg id="figure" viewBox="0 0 240 336" role="img" aria-label="Reachy vu de face, qui copie le vrai">
+          <ellipse class="sol" cx="120" cy="318" rx="74" ry="7"/>
+          <g id="f-ondes">
+            <path class="onde" d="M34 96 q-10 22 0 44"/><path class="onde" d="M22 86 q-16 32 0 64"/><path class="onde" d="M10 76 q-22 42 0 84"/>
+            <path class="onde" d="M206 96 q10 22 0 44"/><path class="onde" d="M218 86 q16 32 0 64"/><path class="onde" d="M230 76 q22 42 0 84"/>
+          </g>
+          <g class="trait" data-partie="base" id="f-corps">
+            <rect class="plein" x="58" y="204" width="124" height="106" rx="34"/>
+            <rect id="f-marque" x="103" y="246" width="34" height="30" rx="8"/>
+          </g>
+          <g class="trait" id="f-cou"><line x1="96" y1="204"/><line x1="120" y1="204"/><line x1="144" y1="204"/></g>
+          <g id="f-tete">
+            <g class="trait" data-partie="tete">
+              <rect class="plein" x="-64" y="-46" width="128" height="92" rx="28"/>
+              <g id="f-yeux">
+                <circle class="oeil" cx="-27" cy="-2" r="18"/><circle class="oeil" cx="27" cy="-2" r="18"/>
+                <circle class="pupille" cx="-27" cy="-2" r="7"/><circle class="pupille" cx="27" cy="-2" r="7"/>
+              </g>
+            </g>
+            <g class="trait" data-partie="antennes" id="f-antenne-gauche"><line x1="0" y1="0" x2="0" y2="-56"/><circle class="bout" cx="0" cy="-60" r="5"/></g>
+            <g class="trait" data-partie="antennes" id="f-antenne-droite"><line x1="0" y1="0" x2="0" y2="-56"/><circle class="bout" cx="0" cy="-60" r="5"/></g>
+          </g>
+        </svg>
+        <p class="legende">Il copie le vrai, vu de face. En couleur&nbsp;: ce que ta main commande.</p>
+        <article class="instrument" data-partie="base">
+          <div class="titre"><h2>Base</h2><span class="statut"></span></div>
+          <div class="jauges">
+            <svg id="cadran" viewBox="0 0 96 100" role="img" aria-label="Vue de dessus&nbsp;: la base et la tête">
+              <circle class="socle" cx="48" cy="48" r="34"/>
+              <g id="cadran-reperes"></g>
+              <line class="aiguille-base" id="cadran-base" x1="48" y1="48" x2="48" y2="80"/>
+              <line class="aiguille-tete" id="cadran-tete" x1="48" y1="48" x2="48" y2="70"/>
+              <text class="petit" x="48" y="98" text-anchor="middle">toi</text>
+            </svg>
+            <div class="lectures">
+              <code>pad.corps</code><output data-lit="corps">0,0°</output><small></small>
+            </div>
+          </div>
+          <p class="note etendue" id="etendue-base"></p>
+          <p class="note">Vue de dessus, toi en bas. Trait épais&nbsp;: la base&nbsp;; trait fin&nbsp;: où regarde la tête. Positif&nbsp;: vers la droite de l’écran.</p>
+        </article>
+      </div>
+
+      <div class="instruments">
+        <article class="instrument" data-partie="antennes">
+          <div class="titre"><h2>Antennes</h2><span class="statut"></span></div>
+          <div class="jauges">
+            <div class="deux">
+              <div data-cote="gauche">
+                <p class="cote-nom">à gauche de l’écran</p>
+                <div class="piste"><i class="zone"></i><i class="seuil"></i><i class="seuil"></i><i class="milieu"></i><i class="curseur"></i></div>
+                <small data-appuis="gauche"></small>
+              </div>
+              <div data-cote="droite">
+                <p class="cote-nom">à droite de l’écran</p>
+                <div class="piste"><i class="zone"></i><i class="seuil"></i><i class="seuil"></i><i class="milieu"></i><i class="curseur"></i></div>
+                <small data-appuis="droite"></small>
+              </div>
+            </div>
+            <div class="lectures">
+              <code>pad.gauche</code><output data-lit="gauche">false</output><small></small>
+              <code>pad.droite</code><output data-lit="droite">false</output><small></small>
+              <code>pad.antennes.gauche</code><output data-lit="antennes.gauche">0,0°</output><small></small>
+              <code>pad.antennes.droite</code><output data-lit="antennes.droite">0,0°</output><small></small>
+            </div>
+          </div>
+          <p class="note" id="note-antennes" style="margin-top:6px"></p>
+        </article>
+
+        <article class="instrument" data-partie="tete">
+          <div class="titre"><h2>Tête</h2><span class="statut"></span></div>
+          <div class="tete-jauges jauges">
+            <svg id="manche" viewBox="0 0 132 132" role="img" aria-label="Le manche&nbsp;: lacet et tangage">
+              <rect class="regle" x="6" y="6" width="120" height="120" rx="10"/>
+              <line class="axe" x1="66" y1="6" x2="66" y2="126"/><line class="axe" x1="6" y1="66" x2="126" y2="66"/>
+              <rect class="exploree" id="manche-etendue" x="66" y="66" width="0" height="0" rx="3"/>
+              <text class="petit" x="123" y="62" text-anchor="end" id="manche-lacet">30°</text>
+              <text class="petit" x="70" y="17" id="manche-tangage">30°</text>
+              <polyline class="sillage" id="manche-sillage" points=""/>
+              <g id="manche-point"><line class="penche" x1="-11" y1="0" x2="11" y2="0"/><circle class="point" r="4.5"/></g>
+            </svg>
+            <div class="lectures">
+              <code>pad.lacet</code><output data-lit="lacet">0,0°</output><small></small>
+              <code>pad.tangage</code><output data-lit="tangage">0,0°</output><small></small>
+              <code>pad.roulis</code><output data-lit="roulis">0,0°</output><small></small>
+              <code>pad.avant</code><output data-lit="avant">0,0&nbsp;mm</output><small></small>
+              <code>pad.cote</code><output data-lit="cote">0,0&nbsp;mm</output><small></small>
+              <code>pad.haut</code><output data-lit="haut">0,0&nbsp;mm</output><small></small>
+            </div>
+          </div>
+          <p class="note etendue" id="etendue-tete"></p>
+          <p class="note">Le manche&nbsp;: le lacet à l’horizontale, base comprise, le tangage à la verticale&nbsp;; son trait penche avec le roulis. Avant, côté, haut&nbsp;: où la main a porté la tête.</p>
+        </article>
+
+        <article class="instrument" data-partie="micro">
+          <div class="titre"><h2>Micro</h2><span class="statut"></span></div>
+          <div class="jauges">
+            <div class="piste" id="niveau"><i class="plein"></i><i class="pic"></i></div>
+            <div class="lectures">
+              <code>pad.voix</code><output data-lit="voix">0,00</output><small data-extremes="voix"></small>
+            </div>
+            <div class="toile" style="margin-top:6px"><canvas id="toile-voix"></canvas></div>
+          </div>
+          <p class="note" style="margin-top:6px">De 0, le calme de la pièce, à 1. Un souffle donne 0,2 à 0,5, une voix normale 0,5 à 0,8. Seul ce nombre quitte le robot, jamais le son.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <aside class="colonne" id="cote">
+    <section aria-label="Liaison">
+      <div class="entete"><h2>Liaison</h2><button class="bouton petit" id="zero">Remettre à zéro</button></div>
+      <p class="gros" data-ton="repos"><span id="cadence">0</span><small id="cadence-quoi">mesures par seconde</small></p>
+      <p class="note" id="cadence-attendu"></p>
+      <div class="chiffres">
+        <span>Écart médian</span><output id="l-mediane">—</output>
+        <span>95&nbsp;% des écarts sous</span><output id="l-p95">—</output>
+        <span>Pire silence</span><output id="l-pire">—</output>
+        <span>Plus de 100, 300, 1&nbsp;500&nbsp;ms</span><output id="l-longs">—</output>
+        <span>Retard à l’arrivée</span><output id="l-retard">—</output>
+        <span><code>pad.t</code>, l’horloge du robot</span><output id="l-t">—</output>
+      </div>
+      <div class="toile"><canvas id="toile-ecarts"></canvas></div>
+      <p class="note" style="margin-top:5px">Trente secondes, un trait par mesure.</p>
+    </section>
+    <section aria-label="Rejeu">
+      <div class="entete"><h2>Rejeu</h2><span class="note" id="rejeu-passage">Aucun passage</span></div>
+      <div class="rangee">
+        <button class="bouton petit" id="rejeu-enregistrer" disabled>Enregistrer un passage</button>
+        <span class="pas"><button id="tours-moins" aria-label="Un tour de moins">−</button><output id="tours">2 tours</output><button id="tours-plus" aria-label="Un tour de plus">+</button></span>
+        <button class="bouton petit" id="rejeu-jouer" disabled>Rejouer</button>
+        <button class="bouton petit" id="rejeu-arreter" hidden>Arrêter le rejeu</button>
+      </div>
+      <p id="rejeu-etat">Un corps prêté, Reachy s’enregistre&nbsp;: il peut refaire ce que ta main lui fait faire.</p>
+    </section>
+    <section aria-label="Mouvements">
+      <div class="entete"><h2>Mouvements</h2></div>
+      <div id="mouvements">
+        <div class="rangee">
+          <span class="groupe"><span>Regard</span><button data-mouvement="regard-gauche">gauche</button><button data-mouvement="regard-centre">centre</button><button data-mouvement="regard-droite">droite</button></span>
+        </div>
+        <div class="rangee">
+          <span class="groupe"><button data-mouvement="antennes">antennes</button><button data-mouvement="geste">geste</button><button data-mouvement="emotion">émotion</button><button data-mouvement="feter">fêter</button></span>
+        </div>
+      </div>
+      <p id="mouvement-etat">Ce que la page demande au robot&nbsp;: rien ne part tant qu’un corps est prêté, tout part avec la voix seule.</p>
+    </section>
+    <section aria-label="Journal">
+      <div class="entete"><h2>Journal</h2><button class="bouton petit" id="vider">Vider</button></div>
+      <ol id="journal"><li class="vide">Ce que la manette dit à la page s’écrit ici.</li></ol>
+    </section>
+  </aside>
+</main>
+
+<script>
+'use strict';
+// ===== Réglages =====
+const SEUIL_APPUI = 4;          // degrés : au-delà, le tableau de bord dit l'antenne appuyée (frontend/src/apps/pad.ts)
+const SEUIL_RELACHE = 1.5;      // et en dessous, relâchée
+const ANTENNE_PLEINE = 15;      // degrés aux bouts d'une piste d'antenne ; elle s'élargit si la main va plus loin
+const MANCHE_PLEIN = 30;        // degrés aux bords du manche, élargis de même
+const CADENCE = { corps: 30, voix: 20 };          // mesures par seconde attendues, avec un corps ou la voix seule
+const HOQUET_MS = 100, SILENCE_MS = 300, COUPURE_MS = 1500;   // un écart entre deux mesures : remarqué, gênant, bloquant
+const ECARTS_MAX = 1200;        // les écarts gardés pour la médiane (40 s à 30 par seconde)
+const BANDE_S = 30;             // ce que montre la bande de la liaison
+const BANDE_PLEINE_MS = 3000;   // l'écart qui remplit sa hauteur
+const VOIX_S = 10;              // ce que montre la bande du micro
+const SILLAGE = 40;             // les points gardés derrière le manche
+const PASSAGE_MIN = 0.3, PASSAGE_MAX = 30, TOURS_MAX = 8;   // un rejeu : sa durée en secondes, ses tours (robot_agent/take.py)
+const COUTURE_S = 0.4;          // entre deux tours d'un rejeu
+const JOURNAL_MAX = 160;
+const DEMO_MS = 33;
+// Ce que chaque corps de manette laisse à la main ; les antennes sont des boutons avec tous.
+const CORPS = {
+  gachettes: {
+    libres: [],
+    quoi: 'Reachy reste debout, immobile, tous ses moteurs tenus. Ses deux antennes sont des boutons : elles plient de quelques degrés sous le doigt.',
+    geste: 'Pousse une antenne du doigt.',
+  },
+  volant: {
+    libres: ['base'],
+    quoi: 'Comme les gâchettes, et le moteur de sa base est relâché : il tourne sur lui-même à la main, comme un volant.',
+    geste: 'Tourne sa base à la main, pousse ses antennes.',
+  },
+  paume: {
+    libres: ['base'],
+    quoi: 'Sa base est relâchée et ses antennes sont baissées, comme quand il dort : la paume posée sur sa tête le tourne, deux doigts appuient sur les antennes. Le sens se lit de la main : tournée vers la gauche, elle donne un corps positif.',
+    geste: 'Pose la paume sur sa tête, tourne-le, appuie des doigts sur ses antennes.',
+  },
+  tete: {
+    libres: ['base', 'tete'],
+    quoi: 'Sa tête descend à sa pose de sommeil, puis ses moteurs et celui de la base sont relâchés : la tête se prend à deux mains, c’est un joystick dont cette pose est le centre. Reste à côté de lui.',
+    geste: 'Prends sa tête à deux mains : tourne, penche, soulève.',
+  },
+};
+const VOIX_SEULE = {
+  quoi: 'Rien de son corps n’est prêté : il continue de bouger. Seul le niveau sonore de son micro arrive à la page, vingt fois par seconde.',
+  geste: 'Parle, souffle ou fais du bruit près de lui.',
+};
+const NOM_ETAT = { non: 'non', attente: 'en attente', oui: 'tenue' };
+const DEPART = {
+  oui: 'la manette marche',
+  aucun: 'pas de robot : rien à prendre',
+  absent: 'Reachy n’est pas venu',
+  sans: 'demande annulée',
+};
+
+// ===== Les nombres et les heures, à la française =====
+const nombre = (v, decimales = 1) => (+v).toFixed(decimales).replace('.', ',').replace('-', '−');
+const signe = (v, decimales = 1) => (v > 0 ? '+' : '') + nombre(v, decimales);
+const duree = (ms) => (ms < 1000 ? Math.round(ms) + ' ms' : nombre(ms / 1000, ms < 10000 ? 2 : 1) + ' s');
+const deux = (n, taille = 2) => String(n).padStart(taille, '0');
+const heure = (d) => deux(d.getHours()) + ':' + deux(d.getMinutes()) + ':' + deux(d.getSeconds()) + ',' + deux(d.getMilliseconds(), 3);
+
+// ===== Les profils =====
+/** Ce qu'un profil donne à la main : son corps (ou rien), et ce qui en est à elle. */
+function decrire(profil) {
+  const [premier, second] = String(profil || '').split('+');
+  const corps = CORPS[premier] ? premier : null;
+  const libres = corps ? CORPS[corps].libres : [];
+  return {
+    corps,
+    antennes: !!corps,
+    baissees: corps === 'paume',
+    base: libres.includes('base'),
+    tete: libres.includes('tete'),
+    micro: premier === 'voix' || second === 'voix',
+  };
+}
+/** Le profil à demander pour un choix de la liste (un corps, ou 'voix') et le micro en plus. */
+const profilDe = (choix, micro) => (choix === 'voix' ? 'voix' : choix + (micro ? '+voix' : ''));
+/** Ce que le banc dit d'une partie selon le profil : à la main ou non, et en quels mots. */
+function statutDe(partie, d) {
+  if (partie === 'micro') return d.micro ? [true, 'écouté'] : [false, 'pas écouté'];
+  if (!d.corps) return [false, partie === 'antennes' ? 'pas prêtées' : 'pas prêtée'];
+  if (partie === 'antennes') return [true, d.baissees ? 'deux boutons, baissées' : 'deux boutons, dressées'];
+  return d[partie] ? [true, 'libre, à ta main'] : [false, partie === 'base' ? 'tenue par son moteur' : 'tenue par ses moteurs'];
+}
+
+// ===== Les mesures : ce que le banc retient des pads, sans rien dessiner =====
+const CHAMPS = ['corps', 'lacet', 'tangage', 'roulis', 'avant', 'cote', 'haut', 'voix'];
+const coteNeuf = () => ({ tenu: false, n: 0, appui: null, relache: null, depuis: 0, duree: null });
+function mesuresNeuves() {
+  return {
+    n: 0, dernier: 0, arrivees: [], ecarts: [], pire: 0, hoquets: 0, silences: 0, coupures: 0,
+    avance: Infinity, retard: 0, extremes: {}, appuis: { gauche: coteNeuf(), droite: coteNeuf() },
+  };
+}
+/** Un pad de plus, arrivé à `maintenant` (ms, l'horloge de la page) et à `date` (ms, l'heure du Mac) : rend ce qui vient de se passer, pour le journal. */
+function mesurer(m, pad, maintenant, date) {
+  const faits = [];
+  if (m.n) {
+    const ecart = maintenant - m.dernier;
+    m.ecarts.push(ecart);
+    if (m.ecarts.length > ECARTS_MAX) m.ecarts.shift();
+    m.pire = Math.max(m.pire, ecart);
+    if (ecart > HOQUET_MS) m.hoquets += 1;
+    if (ecart > SILENCE_MS) { m.silences += 1; faits.push({ quoi: 'silence', ms: ecart }); }
+    if (ecart > COUPURE_MS) m.coupures += 1;
+  }
+  m.arrivees.push(maintenant);
+  if (m.arrivees.length > ECARTS_MAX) m.arrivees.shift();
+  m.n += 1;
+  m.dernier = maintenant;
+  if (pad.t > 0) {
+    m.avance = Math.min(m.avance, date - pad.t);
+    m.retard = date - pad.t - m.avance;
+  }
+  for (const champ of CHAMPS) {
+    const e = m.extremes[champ];
+    if (!e) m.extremes[champ] = [pad[champ], pad[champ]];
+    else { e[0] = Math.min(e[0], pad[champ]); e[1] = Math.max(e[1], pad[champ]); }
+  }
+  for (const cote of ['gauche', 'droite']) {
+    const a = m.appuis[cote], angle = pad.antennes[cote];
+    if (pad[cote] && !a.tenu) { a.n += 1; a.appui = angle; a.depuis = maintenant; }
+    if (!pad[cote] && a.tenu) { a.relache = angle; a.duree = maintenant - a.depuis; faits.push({ quoi: 'relache', cote, ms: a.duree }); }
+    a.tenu = !!pad[cote];
+  }
+  return faits;
+}
+/** La valeur sous laquelle se trouve la part `p` d'une liste triée. */
+const centile = (triee, p) => (triee.length ? triee[Math.min(triee.length - 1, Math.floor(p * triee.length))] : 0);
+/** L'état de la liaison à `maintenant` : sa cadence sur deux secondes, ses écarts, le silence en cours. */
+function resumer(m, maintenant) {
+  const triee = [...m.ecarts].sort((a, b) => a - b);
+  let recentes = 0;
+  for (let k = m.arrivees.length - 1; k >= 0 && maintenant - m.arrivees[k] <= 2000; k -= 1) recentes += 1;
+  const fenetre = m.n ? Math.min(2000, Math.max(250, maintenant - m.arrivees[0])) : 2000;
+  return {
+    cadence: recentes / (fenetre / 1000),
+    mediane: centile(triee, 0.5),
+    p95: centile(triee, 0.95),
+    pire: m.pire,
+    attente: m.n ? maintenant - m.dernier : 0,
+  };
+}
+/** La hauteur d'un écart sur la bande, de 0 (la cadence attendue) à 1 (trois secondes), en échelle logarithmique. */
+const hauteurEcart = (ms, attendu) => reachy.borne(Math.log(Math.max(ms, attendu) / attendu) / Math.log(BANDE_PLEINE_MS / attendu), 0, 1);
+/** Un passage à rejouer entre deux `pad.t` : sa durée en secondes, bornée, et s'il se rejoue. */
+function passageDe(debut, fin) {
+  const secondes = Math.max(0, (fin - debut) / 1000);
+  return { secondes: Math.min(secondes, PASSAGE_MAX), bon: secondes >= PASSAGE_MIN };
+}
+
+// ===== La figure : où va chaque trait =====
+/** La marque sur le ventre du robot, qui tourne avec sa base : son décalage et sa largeur, de face ; derrière passé le quart de tour. */
+const marqueDe = (corps) => {
+  const a = corps * Math.PI / 180;
+  return { dx: 50 * Math.sin(a), largeur: Math.max(4, 34 * Math.abs(Math.cos(a))), derriere: Math.cos(a) < 0 };
+};
+/** Les yeux, qui glissent sur la tête avec le lacet et le tangage. */
+const yeuxDe = (lacet, tangage) => ({
+  dx: 30 * Math.sin(reachy.borne(lacet, -80, 80) * Math.PI / 180),
+  dy: -24 * Math.sin(reachy.borne(tangage, -60, 60) * Math.PI / 180),
+  serre: Math.max(0.35, Math.cos(reachy.borne(lacet, -80, 80) * Math.PI / 180)),
+});
+/** L'inclinaison d'une antenne sur la figure, en degrés (positif : vers la droite de l'écran) : dressée, un peu vers le dehors, ou baissée le long de la tête. Une poussée positive va du côté qui la relève quand elle est baissée : vers la tête. */
+const antenneDe = (cote, pousse, baissee) => (cote === 'gauche' ? -1 : 1) * ((baissee ? 165 : 10) - 1.5 * pousse);
+/** Le bout d'une aiguille du cadran, vu de dessus, toi en bas : 0 pointe vers toi, positif vers la droite de l'écran. */
+const aiguilleDe = (angle, longueur) => ({ x: 48 + longueur * Math.sin(angle * Math.PI / 180), y: 48 + longueur * Math.cos(angle * Math.PI / 180) });
+
+// ===== Une démonstration, quand aucun robot ne répond : des mains inventées =====
+/** Un pad au repos, comme `reachy.pad` avant la première mesure. */
+const padNeuf = () => ({ gauche: false, droite: false, antennes: { gauche: 0, droite: 0 }, corps: 0, lacet: 0, tangage: 0, roulis: 0, avant: 0, cote: 0, haut: 0, voix: 0, t: 0 });
+function padDemo(t, profil) {
+  const d = decrire(profil), sin = Math.sin, p = padNeuf();
+  const coup = (decalage) => { const a = (t + decalage) % 3; return a < 0.5 ? 7 * sin(Math.PI * a / 0.5) : 0; };
+  if (d.antennes) {
+    p.antennes.gauche = coup(0);
+    p.antennes.droite = coup(1.5);
+    p.gauche = p.antennes.gauche > SEUIL_APPUI;
+    p.droite = p.antennes.droite > SEUIL_APPUI;
+  }
+  if (d.base) p.corps = 35 * sin(0.7 * t);
+  if (d.tete) {
+    p.lacet = 22 * sin(0.9 * t);
+    p.tangage = 12 * sin(1.3 * t);
+    p.roulis = 9 * sin(0.5 * t);
+    p.avant = 8 * sin(0.6 * t);
+    p.cote = 14 * sin(0.4 * t);
+    p.haut = 6 * sin(1.1 * t);
+  }
+  p.lacet += p.corps;
+  if (d.micro) p.voix = Math.max(0, 0.42 + 0.45 * sin(2.1 * t) * sin(0.6 * t));
+  return p;
+}
+
+// ===== L'état du banc =====
+const $ = (id) => document.getElementById(id);
+const banc = {
+  choix: 'gachettes',     // la ligne choisie : un corps, ou 'voix'
+  micro: false,           // le micro en plus
+  depart: { sans() {} },  // le « Prendre » en cours
+  attente: '',            // ce que dit Reachy en se mettant en place
+  demande: 0,             // quand la manette a été demandée (ms)
+  reprise: 0,             // jusqu'à quand Reachy reprend son corps (ms)
+  tenue: null,            // le profil de la manette tenue, gardé pour dire ce qu'il reprend
+  tenueDepuis: 0,         // quand elle a marché (ms)
+  rendue: false,          // la page vient de la rendre elle-même
+  demo: null,             // la minuterie de la démonstration
+  demoDepuis: 0,
+  antennesLevees: false,
+};
+let mesures = mesuresNeuves();
+let vue = padNeuf();                // le pad montré : celui du robot, celui de la démonstration, ou le repos
+const sillage = [];                 // les derniers points du manche
+const bandeVoix = [];               // [arrivée, niveau]
+const rejeu = { debut: 0, fin: 0, enregistre: false, tours: 2, etat: 'rien', depuis: 0, secondes: 0, joues: 0 };
+const tenu = () => reachy.etat.manette === 'oui';
+const profilChoisi = () => profilDe(banc.choix, banc.micro && banc.choix !== 'voix');
+/** Le profil que les instruments montrent : celui qui est tenu ou demandé, sinon celui de la liste. */
+const profilMontre = () => (reachy.etat.manette !== 'non' && reachy.etat.profil ? reachy.etat.profil : profilChoisi());
+
+// ===== Le journal =====
+function noter(de, texte) {
+  const journal = $('journal');
+  if (journal.firstElementChild && journal.firstElementChild.classList.contains('vide')) journal.textContent = '';
+  const ligne = document.createElement('li'), quand = document.createElement('time'), quoi = document.createElement('span');
+  ligne.dataset.de = de;
+  quand.textContent = heure(new Date());
+  quoi.textContent = texte;
+  ligne.append(quand, quoi);
+  journal.prepend(ligne);
+  while (journal.children.length > JOURNAL_MAX) journal.lastElementChild.remove();
+}
+
+// ===== Prendre, rendre =====
+function prendre() {
+  const profil = profilChoisi();
+  arreterDemo();
+  banc.demande = performance.now();
+  noter('demande', "reachy.lancer('" + profil + "')");
+  banc.depart = reachy.lancer(profil, {
+    attendre(titre) { banc.attente = titre; peindre(); },
+    partir(avec, raison) {
+      banc.attente = '';
+      noter('manette', 'départ : ' + DEPART[raison] + (avec ? ', ' + duree(performance.now() - banc.demande) + ' après la demande' : ''));
+      peindre();
+    },
+  });
+  peindre();
+}
+function rendre() {
+  banc.rendue = true;
+  banc.depart.sans();
+  if (reachy.etat.manette !== 'non') {
+    noter('demande', 'reachy.manette(null)');
+    reachy.manette(null);
+  }
+  banc.rendue = false;
+  peindre();
+}
+
+// ===== La démonstration =====
+function lancerDemo() {
+  if (banc.demo || reachy.etat.manette !== 'non') return;
+  mesures = mesuresNeuves();
+  banc.demoDepuis = performance.now();
+  banc.demo = setInterval(() => {
+    const p = padDemo((performance.now() - banc.demoDepuis) / 1000, profilChoisi());
+    p.t = Date.now();
+    recevoir(p);
+  }, DEMO_MS);
+  noter('manette', 'démonstration : des valeurs inventées, aucune mesure');
+  peindre();
+}
+function arreterDemo() {
+  if (!banc.demo) return;
+  clearInterval(banc.demo);
+  banc.demo = null;
+  vue = padNeuf();
+  peindre();
+}
+
+// ===== Ce qui arrive du robot =====
+function recevoir(pad) {
+  const maintenant = performance.now();
+  vue = pad;
+  for (const fait of mesurer(mesures, pad, maintenant, Date.now())) {
+    if (banc.demo) continue;
+    if (fait.quoi === 'silence') noter('liaison', 'silence de ' + duree(fait.ms) + ' entre deux mesures');
+    else noter('antennes', 'antenne de ' + fait.cote + ' relâchée à ' + signe(mesures.appuis[fait.cote].relache) + '°, tenue ' + duree(fait.ms));
+  }
+  sillage.push([pad.lacet, pad.tangage]);
+  if (sillage.length > SILLAGE) sillage.shift();
+  bandeVoix.push([maintenant, pad.voix]);
+  while (bandeVoix.length && maintenant - bandeVoix[0][0] > VOIX_S * 1000) bandeVoix.shift();
+  if (rejeu.enregistre && pad.t - rejeu.debut >= PASSAGE_MAX * 1000) finirPassage();
+}
+reachy.quand('pad', (pad) => { if (!banc.demo) recevoir(pad); });
+reachy.quand('appui', (cote) => {
+  if (!banc.demo) noter('antennes', 'appui : antenne de ' + cote + ', à ' + signe(reachy.pad.antennes[cote]) + '°');
+});
+reachy.quand('manette', (etat, avant) => {
+  const profil = reachy.etat.profil;
+  const fin = etat !== 'non' ? '' : banc.rendue ? ', rendue par la page' : avant === 'oui' ? ', reprise sans que la page le demande' : ', refusée ou abandonnée';
+  noter('manette', 'manette : ' + NOM_ETAT[avant] + ' → ' + NOM_ETAT[etat] + (profil ? ' (' + profil + ')' : '') + fin);
+  if (etat === 'oui') {
+    arreterDemo();
+    mesures = mesuresNeuves();
+    vue = padNeuf();
+    sillage.length = bandeVoix.length = 0;
+    banc.tenue = profil;
+    banc.tenueDepuis = performance.now();
+  }
+  if (etat === 'non') {
+    if (rejeu.enregistre) finirPassage();
+    const corps = avant === 'oui' ? reachy.corpsDe(banc.tenue) : null;
+    if (corps) banc.reprise = performance.now() + reachy.REPRISE_MS[corps];
+    banc.attente = '';
+  }
+  peindre();
+});
+reachy.quand('robot', (eveille) => {
+  noter('robot', eveille ? 'robot : réveillé' : 'robot : endormi');
+  if (banc.demo) arreterDemo();
+  peindre();
+});
+reachy.quand('rejeu', (r) => {
+  if (r.etat === 'debut') {
+    Object.assign(rejeu, { etat: 'joue', depuis: performance.now(), secondes: r.secondes, joues: r.tours });
+    noter('rejeu', 'rejeu : début, ' + nombre(r.secondes, 1) + ' s, ' + r.tours + (r.tours > 1 ? ' tours' : ' tour'));
+  } else {
+    noter('rejeu', rejeu.etat === 'attente' ? 'rejeu : fin sans début, rien à rejouer' : 'rejeu : fin');
+    if (rejeu.etat === 'joue') $('rejeu-etat').textContent = 'Rejeu fini.';
+    if (rejeu.etat === 'attente') $('rejeu-etat').textContent = 'Rien à rejouer : ce passage n’est plus sur sa bande.';
+    rejeu.etat = 'rien';
+  }
+  peindre();
+});
+
+// ===== Le rejeu =====
+function commencerPassage() {
+  rejeu.debut = rejeu.fin = reachy.pad.t;
+  rejeu.enregistre = true;
+  noter('rejeu', 'passage : début à pad.t = ' + Math.round(rejeu.debut));
+  peindre();
+}
+function finirPassage() {
+  rejeu.fin = reachy.pad.t;
+  rejeu.enregistre = false;
+  noter('rejeu', 'passage : fin, ' + nombre(passageDe(rejeu.debut, rejeu.fin).secondes, 1) + ' s');
+  peindre();
+}
+function rejouer() {
+  if (tenu() || reachy.etat.manette === 'attente') rendre();
+  const parti = reachy.rejouer(rejeu.debut, rejeu.fin, rejeu.tours);
+  noter('demande', 'reachy.rejouer(' + Math.round(rejeu.debut) + ', ' + Math.round(rejeu.fin) + ', ' + rejeu.tours + ')' + (parti ? '' : ' : rien n’est parti'));
+  if (parti) {
+    rejeu.etat = 'attente';
+    $('rejeu-etat').textContent = 'Lâche-le : il reprend son corps, puis rejoue le passage.';
+  }
+  peindre();
+}
+function arreterRejeu() {
+  noter('demande', 'reachy.rejouer(0, 0, 0)');
+  reachy.rejouer(0, 0, 0);
+  rejeu.etat = 'rien';
+  $('rejeu-etat').textContent = 'Rejeu arrêté.';
+  peindre();
+}
+
+// ===== Les mouvements que la page demande =====
+const GESTE = reachy.GESTES.includes('nod') ? 'nod' : reachy.GESTES[0];
+const EMOTION = reachy.EMOTIONS.includes('cheerful1') ? 'cheerful1' : reachy.EMOTIONS[0];
+const FETE = reachy.EMOTIONS.includes('success1') ? 'success1' : EMOTION;
+const MOUVEMENTS = {
+  'regard-gauche': () => ['reachy.regard(-25, 0)', reachy.regard(-25, 0)],
+  'regard-centre': () => ['reachy.regard(0, 0)', reachy.regard(0, 0)],
+  'regard-droite': () => ['reachy.regard(25, 0)', reachy.regard(25, 0)],
+  antennes: () => {
+    banc.antennesLevees = !banc.antennesLevees;
+    const angle = banc.antennesLevees ? 40 : 0;
+    return ['reachy.antennes(' + angle + ', ' + angle + ')', reachy.antennes(angle, angle)];
+  },
+  geste: () => ["reachy.geste('" + GESTE + "')", reachy.geste(GESTE)],
+  emotion: () => ["reachy.emotion('" + EMOTION + "')", reachy.emotion(EMOTION)],
+  feter: () => {
+    banc.rendue = true;
+    reachy.feter(FETE);
+    banc.rendue = false;
+    return ["reachy.feter('" + FETE + "')", true];
+  },
+};
+function demander(nom) {
+  const [appel, parti] = MOUVEMENTS[nom]();
+  noter('demande', appel + (parti ? '' : ' : retenu'));
+  $('mouvement-etat').textContent = parti
+    ? (nom === 'feter' ? 'Manette rendue : l’émotion part une fois son corps repris.' : 'Parti : le tableau de bord le cadence vers le robot.')
+    : 'Retenu : un corps est prêté, la boîte à outils n’envoie rien.';
+  peindre();
+}
+
+// ===== Peindre ce qui change avec l'état (à chaque événement) =====
+const ecrire = (element, texte) => { if (element.textContent !== texte) element.textContent = texte; };
+function peindre() {
+  const etat = reachy.etat, manette = etat.manette, aucun = etat.eveille === null;
+  const choisi = profilChoisi(), d = decrire(profilMontre());
+  for (const ligne of document.querySelectorAll('.profil')) {
+    const corps = ligne.dataset.corps, lui = decrire(profilDe(corps, banc.micro && corps !== 'voix'));
+    ligne.setAttribute('aria-checked', String(corps === banc.choix));
+    const tenue = manette !== 'non' && etat.profil && (reachy.corpsDe(etat.profil) || 'voix') === corps;
+    ligne.dataset.tenue = tenue ? (manette === 'oui' ? 'oui' : 'attente') : '';
+    for (const point of ligne.querySelectorAll('.donne')) point.toggleAttribute('data-oui', !!lui[point.dataset.partie]);
+  }
+  const micro = $('avec-micro');
+  micro.disabled = banc.choix === 'voix';
+  micro.setAttribute('aria-pressed', String(banc.micro && banc.choix !== 'voix'));
+  ecrire($('fiche-appel'), "reachy.lancer('" + choisi + "')");
+  const fiche = banc.choix === 'voix' ? VOIX_SEULE : CORPS[banc.choix];
+  ecrire($('fiche-quoi'), fiche.quoi + (banc.micro && banc.choix !== 'voix' ? ' Le niveau de son micro arrive en plus.' : ''));
+  const reprise = reachy.REPRISE_MS[banc.choix];
+  ecrire($('fiche-rendu'), reprise ? 'Une fois rendue, il reprend son corps en ' + nombre(reprise / 1000, 1) + ' s environ, dès que tu l’as lâché.' : 'Rien à reprendre : son corps est resté le sien.');
+
+  const meme = manette !== 'non' && etat.profil === choisi;
+  const prendreBouton = $('prendre');
+  prendreBouton.hidden = meme;
+  prendreBouton.disabled = aucun;
+  ecrire(prendreBouton, manette === 'non' ? 'Prendre la manette' : 'Passer à cette manette');
+  $('rendre').hidden = manette === 'non';
+  ecrire($('rendre'), manette === 'attente' ? 'Annuler' : 'Rendre la manette');
+  $('demo').hidden = !aucun;
+  ecrire($('demo'), banc.demo ? 'Arrêter la démonstration' : 'Voir une démonstration');
+
+  const consigne = $('consigne'), maintenant = performance.now();
+  let ton = '', dit;
+  if (banc.demo) { ton = 'demo'; dit = 'Démonstration : ces valeurs sont inventées, aucun robot ne les mesure.'; }
+  else if (manette === 'attente') { ton = 'attente'; dit = banc.attente || 'Reachy se met en place…'; }
+  else if (manette === 'oui') dit = (d.corps ? CORPS[d.corps].geste : VOIX_SEULE.geste) + (d.corps && d.micro ? ' Il écoute aussi.' : '');
+  else if (aucun) dit = 'Aucun robot ne répond : le banc n’a rien à mesurer.';
+  else if (maintenant < banc.reprise) { ton = 'attente'; dit = 'Lâche-le : Reachy reprend son corps.'; }
+  else dit = etat.eveille ? 'Choisis une manette, puis prends-la.' : 'Reachy dort. Prends une manette : il se réveille pour toi.';
+  consigne.dataset.ton = ton;
+  ecrire(consigne, dit);
+
+  for (const partie of ['antennes', 'tete', 'base', 'micro']) {
+    const [aToi, mots] = statutDe(partie, d);
+    const instrument = document.querySelector('.instrument[data-partie="' + partie + '"]');
+    instrument.classList.toggle('a-toi', aToi);
+    ecrire(instrument.querySelector('.statut'), mots);
+    for (const trait of document.querySelectorAll('#figure [data-partie="' + partie + '"]')) trait.classList.toggle('a-toi', aToi);
+  }
+  ecrire($('note-antennes'), d.baissees
+    ? 'Appuyée au-delà de ' + nombre(SEUIL_APPUI, 0) + '°, relâchée sous ' + nombre(SEUIL_RELACHE) + '°, dans un sens ou dans l’autre : positif, le doigt la remonte.'
+    : 'Appuyée au-delà de ' + nombre(SEUIL_APPUI, 0) + '°, relâchée sous ' + nombre(SEUIL_RELACHE) + '°, dans un sens ou dans l’autre, depuis son repos mesuré.');
+
+  const passage = passageDe(rejeu.debut, rejeu.fin), corpsTenu = tenu() && !!d.corps && !banc.demo;
+  const enregistrer = $('rejeu-enregistrer');
+  enregistrer.disabled = !corpsTenu;
+  ecrire(enregistrer, rejeu.enregistre ? 'Arrêter l’enregistrement' : 'Enregistrer un passage');
+  ecrire($('tours'), rejeu.tours + (rejeu.tours > 1 ? ' tours' : ' tour'));
+  const jouer = $('rejeu-jouer');
+  jouer.disabled = aucun || rejeu.enregistre || !passage.bon || rejeu.etat !== 'rien';
+  ecrire(jouer, manette === 'non' ? 'Rejouer' : 'Rendre et rejouer');
+  $('rejeu-arreter').hidden = rejeu.etat === 'rien';
+  if (!rejeu.enregistre) ecrire($('rejeu-passage'), rejeu.fin > rejeu.debut ? 'Passage de ' + nombre(passage.secondes, 1) + ' s' + (passage.bon ? '' : ', trop court') : 'Aucun passage');
+}
+
+// ===== Peindre ce qui bouge (à chaque image) =====
+const lit = {}, pistes = {}, appuis = {};
+for (const sortie of document.querySelectorAll('[data-lit]')) lit[sortie.dataset.lit] = sortie;
+for (const cote of ['gauche', 'droite']) {
+  pistes[cote] = document.querySelector('[data-cote="' + cote + '"] .piste');
+  appuis[cote] = document.querySelector('[data-appuis="' + cote + '"]');
+}
+const part = (v, plein) => 50 + 50 * reachy.borne(v / plein, -1, 1) + '%';
+let antennePleine = ANTENNE_PLEINE, manchePlein = MANCHE_PLEIN, pic = 0, picA = 0;
+
+function peindreAntennes(p, baissees) {
+  antennePleine = Math.max(antennePleine, Math.ceil(Math.max(Math.abs(p.antennes.gauche), Math.abs(p.antennes.droite)) / 5) * 5);
+  for (const cote of ['gauche', 'droite']) {
+    const angle = p.antennes[cote], a = mesures.appuis[cote], piste = pistes[cote];
+    const [zone, seuilMoins, seuilPlus, , curseur] = piste.children;
+    zone.style.left = part(-SEUIL_RELACHE, antennePleine);
+    zone.style.right = 100 - parseFloat(part(SEUIL_RELACHE, antennePleine)) + '%';
+    seuilMoins.style.left = part(-SEUIL_APPUI, antennePleine);
+    seuilPlus.style.left = part(SEUIL_APPUI, antennePleine);
+    curseur.style.left = part(angle, antennePleine);
+    curseur.style.background = p[cote] ? 'var(--antennes)' : '';
+    ecrire(lit[cote], String(!!p[cote]));
+    lit[cote].style.color = p[cote] ? 'var(--antennes)' : '';
+    ecrire(lit['antennes.' + cote], signe(angle) + '°');
+    ecrire(appuis[cote], !a.n ? 'aucun appui' : a.n + (a.n > 1 ? ' appuis' : ' appui') + ', le dernier pris à ' + signe(a.appui) + '°'
+      + (a.relache === null || a.tenu ? '' : ', lâché à ' + signe(a.relache) + '°'));
+    const trait = $('f-antenne-' + cote);
+    trait.setAttribute('transform', 'translate(' + (cote === 'gauche' ? -57 : 57) + ' -38) rotate(' + antenneDe(cote, angle, baissees).toFixed(1) + ')');
+    trait.classList.toggle('appuyee', !!p[cote]);
+  }
+}
+function peindreTete(p, d) {
+  const repos = d.corps === 'tete' ? 14 : 0;     // la tête posée, moteurs relâchés
+  const x = 120 + reachy.borne(p.cote, -40, 40) * 0.8, y = 124 + repos - reachy.borne(p.haut, -40, 40) * 0.8;
+  const taille = 1 + reachy.borne(p.avant, -40, 40) / 260;
+  $('f-tete').setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + reachy.borne(-p.roulis, -40, 40).toFixed(1) + ') scale(' + taille.toFixed(3) + ')');
+  const yeux = yeuxDe(p.lacet, p.tangage - (repos ? 12 : 0));
+  $('f-yeux').setAttribute('transform', 'translate(' + yeux.dx.toFixed(1) + ' ' + yeux.dy.toFixed(1) + ') scale(' + yeux.serre.toFixed(3) + ' 1)');
+  const cou = $('f-cou').children;
+  for (let k = 0; k < cou.length; k += 1) {
+    cou[k].setAttribute('x2', (x + (k - 1) * 22).toFixed(1));
+    cou[k].setAttribute('y2', (y + 44).toFixed(1));
+  }
+  manchePlein = Math.max(manchePlein, Math.ceil(Math.max(Math.abs(p.lacet), Math.abs(p.tangage)) / 10) * 10);
+  const versX = (v) => 66 + 60 * reachy.borne(v / manchePlein, -1, 1), versY = (v) => 66 - 60 * reachy.borne(v / manchePlein, -1, 1);
+  $('manche-point').setAttribute('transform', 'translate(' + versX(p.lacet).toFixed(1) + ' ' + versY(p.tangage).toFixed(1) + ') rotate(' + reachy.borne(-p.roulis, -60, 60).toFixed(1) + ')');
+  $('manche-sillage').setAttribute('points', sillage.map(([l, t]) => versX(l).toFixed(1) + ',' + versY(t).toFixed(1)).join(' '));
+  ecrire($('manche-lacet'), manchePlein + '°');
+  ecrire($('manche-tangage'), manchePlein + '°');
+  for (const champ of ['lacet', 'tangage', 'roulis']) ecrire(lit[champ], signe(p[champ]) + '°');
+  for (const champ of ['avant', 'cote', 'haut']) ecrire(lit[champ], signe(p[champ]) + ' mm');
+  const e = mesures.extremes, exploree = $('manche-etendue');
+  if (e.lacet && (tenu() || banc.demo)) {
+    exploree.setAttribute('x', versX(e.lacet[0]).toFixed(1));
+    exploree.setAttribute('width', (versX(e.lacet[1]) - versX(e.lacet[0])).toFixed(1));
+    exploree.setAttribute('y', versY(e.tangage[1]).toFixed(1));
+    exploree.setAttribute('height', (versY(e.tangage[0]) - versY(e.tangage[1])).toFixed(1));
+  } else exploree.setAttribute('width', '0');
+}
+function peindreBase(p) {
+  const marque = marqueDe(p.corps), dessin = $('f-marque');
+  dessin.setAttribute('x', (120 + marque.dx - marque.largeur / 2).toFixed(1));
+  dessin.setAttribute('width', marque.largeur.toFixed(1));
+  dessin.classList.toggle('derriere', marque.derriere);
+  const base = aiguilleDe(p.corps, 32), tete = aiguilleDe(p.lacet, 22);
+  $('cadran-base').setAttribute('x2', base.x.toFixed(1));
+  $('cadran-base').setAttribute('y2', base.y.toFixed(1));
+  $('cadran-tete').setAttribute('x2', tete.x.toFixed(1));
+  $('cadran-tete').setAttribute('y2', tete.y.toFixed(1));
+  ecrire(lit.corps, signe(p.corps) + '°');
+}
+function peindreMicro(p, maintenant) {
+  if (p.voix >= pic || maintenant - picA > 1500) { pic = p.voix; picA = maintenant; }
+  const [plein, marque] = $('niveau').children;
+  plein.style.left = '0';
+  plein.style.width = 100 * p.voix + '%';
+  marque.style.left = 'calc(' + 100 * pic + '% - 1px)';
+  ecrire(lit.voix, nombre(p.voix, 2));
+  const ondes = $('f-ondes').children;
+  for (let k = 0; k < ondes.length; k += 1) ondes[k].style.opacity = reachy.borne(p.voix * 3.4 - (k % 3), 0, 1).toFixed(2);
+}
+function peindreExtremes() {
+  const e = mesures.extremes, entre = (champ, dit = signe) => 'de ' + dit(e[champ][0]) + ' à ' + dit(e[champ][1]);
+  for (const petit of document.querySelectorAll('[data-extremes]')) {
+    const champ = petit.dataset.extremes;
+    ecrire(petit, e[champ] ? entre(champ, champ === 'voix' ? (v) => nombre(v, 2) : signe) : '');
+  }
+  ecrire($('etendue-base'), e.corps ? 'Parcouru : ' + entre('corps') + '.' : '');
+  ecrire($('etendue-tete'), e.lacet ? 'Parcouru : lacet ' + entre('lacet') + ', tangage ' + entre('tangage') + ', roulis ' + entre('roulis') + '.' : '');
+}
+function peindreLiaison(maintenant) {
+  const actif = tenu() || !!banc.demo, r = resumer(mesures, maintenant);
+  const attendu = 1000 / (decrire(profilMontre()).corps ? CADENCE.corps : CADENCE.voix);
+  const attente = mesures.n ? r.attente : tenu() ? maintenant - banc.tenueDepuis : 0;
+  const muet = actif && attente > Math.max(SILENCE_MS, 3 * attendu);
+  const cadence = $('cadence');
+  cadence.parentElement.dataset.ton = muet ? 'silence' : actif ? '' : 'repos';
+  ecrire(cadence, !actif ? '0' : muet ? nombre(attente / 1000, 1) + ' s' : nombre(r.cadence, 1));
+  ecrire($('cadence-quoi'), muet ? 'sans aucune mesure' : 'mesures par seconde');
+  ecrire($('cadence-attendu'), Math.round(1000 / attendu) + ' attendues ' + (decrire(profilMontre()).corps ? 'avec un corps prêté' : 'avec la voix seule') + '.');
+  const vide = !mesures.ecarts.length;
+  ecrire($('l-mediane'), vide ? '—' : duree(r.mediane));
+  ecrire($('l-p95'), vide ? '—' : duree(r.p95));
+  const pire = $('l-pire');
+  ecrire(pire, vide ? '—' : duree(r.pire));
+  pire.dataset.ton = r.pire > COUPURE_MS ? 'faute' : r.pire > SILENCE_MS ? 'attention' : '';
+  const longs = $('l-longs');
+  ecrire(longs, vide ? '—' : mesures.hoquets + ', ' + mesures.silences + ', ' + mesures.coupures);
+  longs.dataset.ton = mesures.coupures ? 'faute' : mesures.silences ? 'attention' : '';
+  ecrire($('l-retard'), mesures.avance === Infinity ? '—' : duree(mesures.retard));
+  ecrire($('l-t'), vue.t > 0 ? heure(new Date(vue.t)) : '—');
+}
+
+// Les deux bandes : les écarts de la liaison, le niveau du micro.
+const toiles = { ecarts: reachy.toile($('toile-ecarts')), voix: reachy.toile($('toile-voix')) };
+function dessinerEcarts(maintenant) {
+  const { ctx, largeur, hauteur } = toiles.ecarts, c = reachy.couleurs;
+  ctx.clearRect(0, 0, largeur, hauteur);
+  const attendu = 1000 / (decrire(profilMontre()).corps ? CADENCE.corps : CADENCE.voix);
+  for (const [seuil, couleur] of [[SILENCE_MS, c.attention], [COUPURE_MS, c.faute]]) {
+    const y = hauteur - 1 - (hauteur - 2) * hauteurEcart(seuil, attendu);
+    ctx.fillStyle = couleur;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(0, y, largeur, 1);
+  }
+  ctx.globalAlpha = 1;
+  const debut = mesures.arrivees.length - mesures.ecarts.length;
+  for (let k = mesures.ecarts.length - 1; k >= 0; k -= 1) {
+    const age = (maintenant - mesures.arrivees[debut + k]) / 1000;
+    if (age > BANDE_S) break;
+    const ecart = mesures.ecarts[k], h = Math.max(2, (hauteur - 2) * hauteurEcart(ecart, attendu));
+    ctx.fillStyle = ecart > COUPURE_MS ? c.faute : ecart > SILENCE_MS ? c.attention : ecart > HOQUET_MS ? c.parle : c['encre-3'];
+    ctx.fillRect(largeur * (1 - age / BANDE_S), hauteur - h, ecart > HOQUET_MS ? 2 : 1, h);
+  }
+}
+function dessinerVoix(maintenant) {
+  const { ctx, largeur, hauteur } = toiles.voix;
+  ctx.clearRect(0, 0, largeur, hauteur);
+  if (bandeVoix.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(largeur * (1 - (maintenant - bandeVoix[0][0]) / (VOIX_S * 1000)), hauteur);
+  for (const [quand, niveau] of bandeVoix) ctx.lineTo(largeur * (1 - (maintenant - quand) / (VOIX_S * 1000)), hauteur - (hauteur - 2) * niveau);
+  ctx.lineTo(largeur * (1 - (maintenant - bandeVoix[bandeVoix.length - 1][0]) / (VOIX_S * 1000)), hauteur);
+  ctx.closePath();
+  ctx.fillStyle = reachy.couleurs.ecoute;
+  ctx.globalAlpha = 0.6;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+let dernierResume = 0;
+function image() {
+  const maintenant = performance.now(), d = decrire(profilMontre());
+  const p = tenu() || banc.demo ? vue : padNeuf();
+  peindreAntennes(p, d.baissees);
+  peindreTete(p, d);
+  peindreBase(p);
+  peindreMicro(p, maintenant);
+  dessinerEcarts(maintenant);
+  dessinerVoix(maintenant);
+  if (maintenant - dernierResume > 200) {
+    dernierResume = maintenant;
+    peindreLiaison(maintenant);
+    peindreExtremes();
+    if (rejeu.enregistre) ecrire($('rejeu-passage'), nombre(Math.max(0, reachy.pad.t - rejeu.debut) / 1000, 1) + ' s…');
+    if (rejeu.etat === 'joue') {
+      const tour = rejeu.secondes + COUTURE_S, passe = (maintenant - rejeu.depuis) / 1000;
+      ecrire($('rejeu-etat'), 'Il rejoue : tour ' + Math.min(rejeu.joues, 1 + Math.floor(passe / tour)) + ' sur ' + rejeu.joues + '.');
+    }
+    if (banc.reprise && maintenant >= banc.reprise) { banc.reprise = 0; peindre(); }
+  }
+}
+
+// ===== Les gestes du joueur =====
+for (const ligne of document.querySelectorAll('.profil')) {
+  ligne.addEventListener('click', () => { banc.choix = ligne.dataset.corps; peindre(); });
+  ligne.addEventListener('dblclick', () => { if (!$('prendre').hidden && !$('prendre').disabled) prendre(); });
+}
+$('avec-micro').addEventListener('click', () => { banc.micro = !banc.micro; peindre(); });
+$('prendre').addEventListener('click', prendre);
+$('rendre').addEventListener('click', rendre);
+$('demo').addEventListener('click', () => (banc.demo ? arreterDemo() : lancerDemo()));
+$('zero').addEventListener('click', () => { mesures = mesuresNeuves(); antennePleine = ANTENNE_PLEINE; manchePlein = MANCHE_PLEIN; sillage.length = 0; });
+$('vider').addEventListener('click', () => { $('journal').textContent = ''; });
+$('rejeu-enregistrer').addEventListener('click', () => (rejeu.enregistre ? finirPassage() : commencerPassage()));
+$('rejeu-jouer').addEventListener('click', rejouer);
+$('rejeu-arreter').addEventListener('click', arreterRejeu);
+$('tours-moins').addEventListener('click', () => { rejeu.tours = Math.max(1, rejeu.tours - 1); peindre(); });
+$('tours-plus').addEventListener('click', () => { rejeu.tours = Math.min(TOURS_MAX, rejeu.tours + 1); peindre(); });
+$('mouvements').addEventListener('click', (e) => {
+  const bouton = e.target.closest('[data-mouvement]');
+  if (bouton) demander(bouton.dataset.mouvement);
+});
+const LIGNES = ['gachettes', 'volant', 'paume', 'tete', 'voix'];
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+  const rang = '12345'.indexOf(e.key);
+  if (rang >= 0) banc.choix = LIGNES[rang];
+  else if (e.key === 'm' || e.key === 'M') { if (banc.choix !== 'voix') banc.micro = !banc.micro; }
+  else if (e.key === 'Enter' && (e.target.tagName !== 'BUTTON' || e.target.classList.contains('profil'))) { if (!$('prendre').hidden && !$('prendre').disabled) prendre(); }
+  else if (e.key === 'Escape') rendre();
+  else return;
+  e.preventDefault();
+  peindre();
+});
+
+// Les repères du cadran, tous les 30 degrés.
+for (let angle = 0; angle < 360; angle += 30) {
+  const a = aiguilleDe(angle, 34), b = aiguilleDe(angle, angle % 90 ? 38 : 41);
+  const trait = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  for (const [nom, v] of [['x1', a.x], ['y1', a.y], ['x2', b.x], ['y2', b.y]]) trait.setAttribute(nom, v.toFixed(1));
+  trait.setAttribute('class', 'regle');
+  $('cadran-reperes').append(trait);
+}
+
+reachy.pastilles({ robot: $('etat-robot'), manette: $('etat-manette') });
+peindre();
+reachy.boucle({ dessiner: image });
+
+// ===== Autotests : les vraies fonctions du banc, sur des situations construites =====
+window.__selfTest = () => {
+  const code = (profil) => { const d = decrire(profil); return (d.antennes ? 1 : 0) + (d.base ? 2 : 0) + (d.tete ? 4 : 0) + (d.micro ? 8 : 0); };
+  const connus = reachy.PROFILS.filter((profil) => code(profil) > 0).length;
+  const atteints = reachy.PROFILS.filter((profil) => LIGNES.some((choix) => [false, true].some((micro) => profilDe(choix, micro) === profil))).length;
+  const pad = (plus) => Object.assign(padNeuf(), plus);
+  const m = mesuresNeuves();
+  [0, 33, 66, 466, 500].forEach((quand, k) => mesurer(m, pad({ corps: [-10, 0, 25, 5, 0][k], t: 900 + quand - (k === 4 ? 10 : 0) }), quand, 1000 + quand));
+  const r = resumer(m, 500);
+  const a = mesuresNeuves();
+  [[0, false], [5, true], [6.5, true], [1, false]].forEach(([angle, pousse], k) => mesurer(a, pad({ gauche: pousse, antennes: { gauche: angle, droite: 0 } }), 100 * k, 0));
+  return [
+    ['tete+voix donne antennes, base, tête et micro', code('tete+voix'), 15, 0],
+    ['paume donne les antennes et la base', code('paume'), 3, 0],
+    ['paume baisse les antennes, volant non', +decrire('paume').baissees - +decrire('volant').baissees, 1, 0],
+    ['voix seule ne donne que le micro', code('voix'), 8, 0],
+    ['chaque profil de la boîte à outils est décrit', connus, reachy.PROFILS.length, 0],
+    ['chaque profil se demande depuis la liste', atteints, reachy.PROFILS.length, 0],
+    ['le pire écart entre deux mesures', m.pire, 400, 0],
+    ['un écart de 400 ms est un hoquet et un silence, pas une coupure', m.hoquets + 10 * m.silences + 100 * m.coupures, 11, 0],
+    ['la médiane des écarts', r.mediane, 34, 0],
+    ['le retard sur la meilleure mesure', m.retard, 10, 0],
+    ['les extrêmes du corps', m.extremes.corps[1] - m.extremes.corps[0], 35, 0],
+    ['un appui compté une fois', a.appuis.gauche.n, 1, 0],
+    ['l’angle où il est pris, puis lâché', a.appuis.gauche.appui + 10 * a.appuis.gauche.relache, 15, 0],
+    ['la durée de l’appui', a.appuis.gauche.duree, 200, 0],
+    ['un passage de 4,2 s se rejoue', passageDe(1000, 5200).secondes * (passageDe(1000, 5200).bon ? 1 : -1), 4.2, 0.001],
+    ['un passage de 0,1 s est trop court', +passageDe(1000, 1100).bon, 0, 0],
+    ['un passage est borné à 30 s', passageDe(0, 99000).secondes, PASSAGE_MAX, 0],
+    ['la bande : la cadence attendue au plus bas', hauteurEcart(33, 33), 0, 0],
+    ['la bande : trois secondes au plus haut', hauteurEcart(3000, 33), 1, 0],
+    ['la marque du ventre au quart de tour', marqueDe(90).dx, 50, 0.001],
+    ['elle passe derrière au-delà', +marqueDe(120).derriere, 1, 0],
+    ['les yeux suivent le lacet', yeuxDe(30, 0).dx, 15, 0.001],
+    ['une antenne dressée poussée penche vers la tête', antenneDe('gauche', 10, false), 5, 0.001],
+    ['une antenne baissée poussée remonte', antenneDe('droite', 10, true), 150, 0.001],
+    ['l’aiguille pointe vers toi au repos', aiguilleDe(0, 32).y, 80, 0.001],
+    ['et vers la droite de l’écran à +90', aiguilleDe(90, 32).x, 80, 0.001],
+    ['la démonstration pousse une antenne', padDemo(0.25, 'gachettes').antennes.gauche, 7, 0.001],
+    ['sans corps, elle ne tourne rien', padDemo(1, 'voix').corps + padDemo(1, 'voix').lacet, 0, 0],
+    ['au repos, le micro n’entend rien', padNeuf().voix + padDemo(0, 'gachettes').voix, 0, 0],
+    ['un nombre à la française', +(nombre(-5.25, 1) === '−5,3' || nombre(-5.25, 1) === '−5,2'), 1, 0],
+    ['une durée en millisecondes puis en secondes', duree(306).length + duree(3337).length, 12, 0],
+  ];
+};
+</script>
+</body>
+</html>

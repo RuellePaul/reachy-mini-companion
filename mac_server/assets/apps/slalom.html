@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="reachy-quiet" content="oui">
+<title>Slalom</title>
+<style>
+:root {
+  /* « Porcelaine et graphite », côté neige : la porcelaine est le fond, le graphite l'encre. */
+  --neige: #F2F5F9; --neige-ombre: #DDE6F1; --glace: #6F8FBF;
+  --encre: #16181B; --encre-2: #4A535E; --encre-3: #626C78;
+  --porcelaine: #F7F9FB; --graphite: #16181B;
+  --trait: rgba(22, 24, 27, 0.10); --trait-fort: rgba(22, 24, 27, 0.24);
+  /* Les couleurs de signal (--ecoute, --pense, --parle, --sommeil, --attention, --faute) sont celles de la boîte à outils. */
+  --porte-rouge: var(--faute); --porte-bleue: #5F87C2;   /* le bleu « sommeil », plus dense pour se lire sur la neige */
+  --or: #E3B341; --argent: #B4BECB; --bronze: #C8875A;
+  --accent: var(--faute);
+  --verre: rgba(255, 255, 255, 0.74);
+  --police: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--neige); color: var(--encre); font-family: var(--police); -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+button:focus-visible { outline: 2px solid var(--encre); outline-offset: 3px; }
+kbd { font: 600 11px/18px ui-monospace, "SF Mono", Menlo, monospace; display: inline-block; min-width: 20px; padding: 0 5px; text-align: center; border-radius: 5px; color: var(--encre-2); background: rgba(255, 255, 255, 0.8); border: 1px solid var(--trait-fort); }
+
+#scene { position: fixed; inset: 0; overflow: hidden; }
+#toile { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* Le bandeau du haut : les chiffres de la descente. */
+.hud { position: absolute; z-index: 1; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: clamp(10px, 2.2vmin, 18px); pointer-events: none; transition: opacity 0.3s ease; }
+body[data-mode="accueil"] .hud, body[data-mode="place"] .hud { opacity: 0; }
+.jauge { display: flex; flex-direction: column; gap: 1px; min-width: 76px; padding: 8px 14px 9px; border-radius: 14px; background: var(--verre); border: 1px solid var(--trait); box-shadow: 0 8px 24px -14px rgba(40, 64, 104, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.jauge small { font-size: 11px; font-weight: 600; color: var(--encre-3); }
+.jauge b { font-size: clamp(22px, 4.6vmin, 34px); font-weight: 760; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jauge i { margin-left: 4px; font-size: 0.42em; font-style: normal; font-weight: 640; letter-spacing: 0; color: var(--encre-3); }
+
+/* En bas : l'état du robot et de la manette, puis les boutons de jeu. */
+.pied { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px; padding: clamp(10px, 2.2vmin, 18px); pointer-events: none; }
+.etats { display: flex; flex-direction: column; gap: 4px; }
+.pastille { display: inline-flex; align-items: center; gap: 7px; width: fit-content; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 560; color: var(--encre-2); background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.pastille::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--point, #9AA3AE); }
+.pastille[data-etat="oui"] { --point: var(--ecoute); color: var(--encre); }
+.pastille[data-etat="attente"] { --point: var(--attention); }
+.pastille[data-etat="dort"] { --point: var(--sommeil); }
+.touches { display: flex; gap: 8px; margin-left: auto; pointer-events: auto; }
+.touche { position: relative; overflow: hidden; display: inline-grid; place-items: center; min-width: 44px; height: 44px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 660; color: var(--encre-2); background: var(--verre); border: 1px solid var(--trait); box-shadow: 0 8px 24px -14px rgba(40, 64, 104, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.touche:hover { color: var(--encre); border-color: var(--trait-fort); }
+.touche:active { transform: scale(0.95); }
+.touche svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.touche.jeu { display: none; }
+body[data-mode="jeu"] .touche.jeu, body[data-mode="pause"] .touche.jeu, body[data-mode="decompte"] .touche.jeu { display: inline-grid; }
+#btn-schuss { min-width: 84px; color: var(--encre); }
+#btn-schuss::before { content: ""; position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--pret, 1)); background: rgba(22, 24, 27, 0.1); }
+#btn-schuss[data-pret="oui"]::before { background: none; }
+#btn-schuss:not([data-pret="oui"]) { color: var(--encre-3); }
+#btn-schuss span { position: relative; }
+#btn-son .barre { display: none; }
+#btn-son[aria-pressed="true"] .barre { display: inline; }
+#btn-son[aria-pressed="true"] .onde { display: none; }
+
+/* Les écrans : accueil, mise en place de Reachy, pause, fin. */
+.ecran { position: absolute; z-index: 2; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 2.4vmin, 20px); padding: 20px 20px 76px; text-align: center; background: color-mix(in srgb, var(--neige) 62%, transparent); backdrop-filter: blur(14px) saturate(1.1); -webkit-backdrop-filter: blur(14px) saturate(1.1); animation: apparait 0.35s ease both; }
+@keyframes apparait { from { opacity: 0; } }
+.ecran h1 { font-size: clamp(44px, 12vmin, 104px); font-weight: 800; line-height: 0.95; letter-spacing: -0.04em; }
+.ecran h2 { font-size: clamp(26px, 6vmin, 44px); font-weight: 760; letter-spacing: -0.02em; }
+.ecran p { max-width: 30em; font-size: clamp(14px, 2.4vmin, 17px); line-height: 1.5; color: var(--encre-2); }
+.ecran p b { color: var(--encre); font-weight: 660; }
+.ecran p.petit { font-size: clamp(12px, 2vmin, 14px); color: var(--encre-3); }
+.gros { font-size: clamp(54px, 15vmin, 120px); font-weight: 800; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.gros i { margin-left: 0.12em; font-size: 0.34em; font-style: normal; font-weight: 700; letter-spacing: 0; color: var(--encre-3); }
+.bouton { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 30px; border-radius: 999px; font-size: 18px; font-weight: 700; color: var(--porcelaine); background: var(--graphite); box-shadow: 0 14px 30px -14px rgba(22, 24, 27, 0.7); transition: transform 0.12s ease, background 0.12s ease; }
+.bouton:hover { background: #2B3036; transform: translateY(-1px); }
+.bouton:active { transform: scale(0.97); }
+.bouton.discret { min-height: 40px; padding: 0 18px; font-size: 14px; font-weight: 640; color: var(--encre-2); background: rgba(255, 255, 255, 0.5); border: 1px solid var(--trait-fort); box-shadow: none; }
+.bouton.discret:hover { color: var(--encre); background: rgba(255, 255, 255, 0.85); }
+.aides { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; font-size: 12px; color: var(--encre-3); }
+.aides span { display: inline-flex; align-items: center; gap: 5px; }
+#decompte { position: absolute; z-index: 2; inset: 0; display: grid; place-items: center; font-size: clamp(120px, 40vmin, 320px); font-weight: 800; letter-spacing: -0.05em; color: var(--graphite); pointer-events: none; text-shadow: 0 0 60px rgba(255, 255, 255, 0.9); }
+#decompte span { animation: bat 1s ease both; }
+@keyframes bat { from { opacity: 0; transform: scale(1.5); } 25% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } to { opacity: 0; transform: scale(0.85); } }
+#annonce { position: absolute; z-index: 1; left: 50%; top: 17%; transform: translateX(-50%); padding: 8px 16px; border-radius: 999px; font-size: 15px; font-weight: 680; color: var(--encre); background: var(--verre); border: 1px solid var(--trait); box-shadow: 0 8px 24px -14px rgba(40, 64, 104, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); pointer-events: none; opacity: 0; transition: opacity 0.25s ease; white-space: nowrap; }
+#annonce.vu { opacity: 1; }
+#annonce.faute { color: #C2392B; }
+
+/* Reachy, dessiné : il montre comment on le tient. Ici, on tourne son corps. */
+.pose { position: relative; width: clamp(88px, 21vmin, 156px); perspective: 460px; margin-bottom: clamp(6px, 2vmin, 16px); }
+.reachy { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 9px 10px rgba(52, 78, 120, 0.3)); transform-origin: 50% 72%; animation: pivote 2.8s ease-in-out infinite; }
+@keyframes pivote { from, to { transform: rotateY(-40deg) rotate(-1.500deg); } 50% { transform: rotateY(40deg) rotate(1.500deg); } }
+.reachy .coque { fill: #FFFFFF; }
+.reachy .ombre { fill: #C3CEDD; }
+.reachy .oeil { fill: var(--graphite); }
+.reachy .reflet { fill: #5B6370; }
+.reachy .antenne { stroke: var(--graphite); stroke-width: 3; stroke-linecap: round; fill: none; }
+.reachy .bout { fill: var(--graphite); }
+.reachy .r-yeux { animation: regarde 2.8s ease-in-out infinite; }
+@keyframes regarde { from, to { transform: translateX(-9px); } 50% { transform: translateX(9px); } }
+.pose .arc { position: absolute; left: -9%; bottom: -15%; width: 118%; overflow: visible; }
+.pose .arc path { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+/* La médaille de l'arrivée. */
+.medaille { width: clamp(58px, 13vmin, 92px); height: auto; overflow: visible; filter: drop-shadow(0 8px 10px rgba(52, 78, 120, 0.3)); }
+.medaille .disque { fill: var(--medaille, var(--or)); }
+.medaille .cercle { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 2.5; }
+.medaille text { font: 800 26px var(--police); fill: rgba(22, 24, 27, 0.72); text-anchor: middle; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+@media (max-height: 600px) { .ecran .aides { display: none; } }
+@media (max-width: 480px) { .jauge { min-width: 0; padding: 7px 11px 8px; } .touches { gap: 6px; } }
+</style>
+</head>
+<body data-mode="accueil">
+<main id="scene">
+  <canvas id="toile"></canvas>
+
+  <header class="hud">
+    <div class="jauge"><small>Chrono</small><b><span id="chrono">0,0</span><i>s</i></b></div>
+    <div class="jauge"><small>Portes</small><b id="portes">0/24</b></div>
+    <div class="jauge"><small>Vitesse</small><b><span id="vitesse">0</span><i>km/h</i></b></div>
+  </header>
+
+  <div id="annonce"></div>
+  <div id="decompte" hidden></div>
+
+  <section class="ecran" id="accueil">
+    <div class="pose" aria-hidden="true">
+      <svg class="reachy" viewBox="0 0 120 120">
+        <g class="r-corps"><rect class="ombre" x="36" y="64" width="48" height="46" rx="19"/><rect class="coque" x="36" y="62" width="48" height="44" rx="19"/></g>
+        <g class="r-tete">
+          <g class="r-ant-d"><path class="antenne" d="M40 30 L33 8"/><circle class="bout" cx="33" cy="8" r="3.5"/></g>
+          <g class="r-ant-g"><path class="antenne" d="M80 30 L87 8"/><circle class="bout" cx="87" cy="8" r="3.5"/></g>
+          <rect class="ombre" x="16" y="30" width="88" height="40" rx="20"/><rect class="coque" x="16" y="27" width="88" height="40" rx="20"/>
+          <g class="r-yeux"><rect class="oeil" x="44" y="44" width="32" height="5" rx="2.5"/><circle class="oeil" cx="43" cy="47" r="11"/><circle class="oeil" cx="77" cy="47" r="11"/><circle class="reflet" cx="39.500" cy="43.500" r="3"/><circle class="reflet" cx="73.500" cy="43.500" r="3"/></g>
+        </g>
+      </svg>
+      <svg class="arc" viewBox="0 0 140 34"><path d="M16 8 Q70 40 124 8"/><path d="M27 6 L15 7 L18 19"/><path d="M113 6 L125 7 L122 19"/></svg>
+    </div>
+    <h1>Slalom</h1>
+    <p>Reachy est ton skieur&nbsp;: <b>tourne son corps</b>, il prend le même cap. Enfile les 24&nbsp;portes le plus vite possible.</p>
+    <button class="bouton" id="jouer">Jouer</button>
+    <div class="aides"><span><kbd>Entrée</kbd> jouer</span><span><kbd>←</kbd><kbd>→</kbd> tourner</span><span><kbd>↑</kbd> ou une antenne&nbsp;: schuss</span><span><kbd>P</kbd> pause</span><span><kbd>R</kbd> recommencer</span><span><kbd>M</kbd> son</span></div>
+  </section>
+
+  <section class="ecran" id="place" hidden>
+    <h2 id="place-titre">Reachy se met en place…</h2>
+    <p id="place-texte">Il relâche le moteur de sa base&nbsp;: <b>tourne-le à la main</b>, le skieur le suit. Une tape sur une antenne, et il part en schuss.</p>
+    <button class="bouton discret" id="sans-robot">Jouer sans Reachy</button>
+  </section>
+
+  <section class="ecran" id="pause" hidden>
+    <h2>Pause</h2>
+    <button class="bouton" id="reprendre">Reprendre</button>
+    <button class="bouton discret" id="recommencer">Recommencer</button>
+  </section>
+
+  <section class="ecran" id="fin" hidden>
+    <svg class="medaille" id="medaille" viewBox="0 0 80 100" aria-hidden="true">
+      <path d="M22 2 L40 2 L48 34 L32 40 Z" fill="var(--porte-rouge)"/><path d="M58 2 L40 2 L32 34 L48 40 Z" fill="var(--porte-bleue)"/>
+      <circle class="disque" cx="40" cy="64" r="30"/><circle class="cercle" cx="40" cy="64" r="23"/><text x="40" y="73" id="medaille-rang">1</text>
+    </svg>
+    <h2 id="fin-titre">Arrivé</h2>
+    <div class="gros"><span id="fin-score">0,00</span><i>s</i></div>
+    <p id="fin-detail"></p>
+    <p class="petit" id="fin-suite"></p>
+    <button class="bouton" id="rejouer">Rejouer</button>
+  </section>
+
+  <footer class="pied" id="pied">
+    <div class="etats">
+      <span class="pastille" id="etat-robot">Robot&nbsp;: en attente</span>
+      <span class="pastille" id="etat-manette">Manette&nbsp;: non</span>
+    </div>
+    <nav class="touches">
+      <button class="touche jeu" id="btn-gauche" aria-label="Tourner à gauche"><svg viewBox="0 0 24 24"><path d="M15 5 L8 12 L15 19"/></svg></button>
+      <button class="touche jeu" id="btn-droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19"/></svg></button>
+      <button class="touche jeu" id="btn-schuss" data-pret="oui"><span>Schuss</span></button>
+      <button class="touche" id="btn-son" aria-label="Couper le son" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 9.500 H7.500 L12 5.500 V18.500 L7.500 14.500 H4 Z"/><path class="onde" d="M15.500 9 Q18 12 15.500 15"/><path class="onde" d="M18 6.500 Q22.500 12 18 17.500"/><path class="barre" d="M16 9.500 L21 14.500 M21 9.500 L16 14.500"/></svg></button>
+      <button class="touche jeu" id="btn-pause" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M9 6 V18 M15 6 V18"/></svg></button>
+    </nav>
+  </footer>
+</main>
+
+<script>
+'use strict';
+// ===== Réglages =====
+const PROFIL = 'volant';            // la manette demandée : la base de Reachy est le cap du skieur
+const TENUE = 'ton corps est son cap';   // ce que dit la pastille quand la manette marche
+const PAS = 1 / 120;                // pas fixe de la logique, en secondes
+const DECOMPTE = 3;                 // secondes avant le départ
+const DPR_MAX = 2;
+
+// La piste (mètres) : la même à chaque descente, pour que les temps se comparent.
+const GRAINE = 20261111;
+const NB_PORTES = 24;
+const DEPART_M = 30;                          // du portillon à la première porte
+const ESPACE_DEBUT = 27, ESPACE_FIN = 21;     // entre deux portes, du haut au bas de la piste
+const ECART_DEBUT = 3.2, ECART_FIN = 6.6;     // d'une porte à l'axe de la piste
+const LARGEUR_DEBUT = 7.6, LARGEUR_FIN = 5.6; // l'ouverture d'une porte
+const MARGE_PORTE = 0.25;                     // un ski qui frôle le piquet passe
+const ARRIVEE_APRES = 32;                     // de la dernière porte à la ligne
+const FORET_M = 15.5;                         // les premiers sapins, depuis l'axe
+const BORD_M = 44;                            // au-delà, la forêt ne se traverse plus
+const PENALITE = 3;                           // secondes par porte manquée
+
+// Le ski (mètres, secondes, radians)
+const CAP_MAX = 80 * Math.PI / 180;           // le skieur ne remonte jamais la pente
+const CAP_TAU = 0.06;                         // le cap suit la consigne en douceur
+const ROT_MAX = 5.5;                          // rad/s : le plus vite que les skis tournent
+const ROT_CLAVIER = 2.9;                      // rad/s : flèches et boutons
+const PENTE = 6.2;                            // l'accélération dans la ligne de pente
+const FROTTEMENT = 0.5;                       // la neige
+const AIR = 0.0125;                           // l'air : une vitesse de croisière de 77 km/h
+const CARRE = 0.09;                           // tourner fort fait mordre les carres, et freine
+const ELAN = 3;                               // la poussée du départ, m/s
+const SCHUSS_S = 1.4, SCHUSS_REPOS = 3;       // la position de recherche de vitesse, puis le temps de souffler
+const SCHUSS_AIR = 0.45, SCHUSS_ELAN = 1.2;
+const RAYON_SKIEUR = 0.45;
+const ARBRE_RESTE = 0.25;                     // la part de vitesse gardée après un sapin
+const FREIN_ARRIVEE = 7;                      // le dérapage après la ligne
+
+// Les médailles : le temps total, pénalités comprises.
+const OR = 35, ARGENT = 40, BRONZE = 46;
+const EMOTION_MEDAILLE = { or: 'success1', argent: 'proud1', bronze: 'cheerful1', '': 'sad1' };
+
+// L'image
+const VUE_L = 44, VUE_H = 50;                 // mètres visibles, au moins, en largeur et en hauteur
+const TUILE_M = 16;                           // la neige se répète tous les 16 m
+const FUITE = 0.013;                          // ce qui est haut penche vers les bords de l'écran
+const OMBRE_X = 0.8, OMBRE_Y = 0.6;           // le soleil est bas, en haut à gauche
+const SEG_ECHARPE = 0.2, NB_ECHARPE = 6;
+
+// ===== Utilitaires =====
+const $ = (id) => document.getElementById(id);
+const { borne, mele, lisse, hasard } = reachy;   // la boîte à outils : les mêmes, hasard à graine compris
+/** Un temps comme on l'écrit : 38,42. */
+const formaterTemps = (s, decimales) => s.toFixed(decimales === undefined ? 2 : decimales).replace('.', ',');
+
+// ===== Le robot : la boîte à outils (window.reachy) tient le canal, la manette et ses pastilles =====
+/** Où Reachy regarde pour voir un point de la page : ses bords sont à ±30° et ±20°. */
+function regardVers(sx, sy, l, h) {
+  return { yaw: borne((sx / l - 0.5) * 60, -30, 30), pitch: borne((0.5 - sy / h) * 40, -20, 20) };
+}
+
+// ===== Le son : l'amorce, la sortie et les notes sont de la boîte à outils ; la neige et le vent sont d'ici =====
+const son = reachy.son;
+const glisse = { bruit: null, carre: null, vent: null, filtre: null };   // un bruit blanc, et ce qu'on en tire
+function audio() {
+  const ctx = son.demarrer();
+  if (ctx && !glisse.bruit) {
+    // Un bruit blanc en boucle : le crissement des carres et le vent en sortent, filtrés.
+    glisse.bruit = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const grains = glisse.bruit.getChannelData(0);
+    for (let i = 0; i < grains.length; i++) grains[i] = Math.random() * 2 - 1;
+    const source = ctx.createBufferSource(), passeBas = ctx.createBiquadFilter();
+    source.buffer = glisse.bruit; source.loop = true;
+    glisse.filtre = ctx.createBiquadFilter(); glisse.filtre.type = 'bandpass'; glisse.filtre.frequency.value = 1800; glisse.filtre.Q.value = 0.6;
+    passeBas.type = 'lowpass'; passeBas.frequency.value = 420;
+    glisse.carre = ctx.createGain(); glisse.carre.gain.value = 0;
+    glisse.vent = ctx.createGain(); glisse.vent.gain.value = 0;
+    source.connect(glisse.filtre).connect(glisse.carre).connect(son.sortie);
+    source.connect(passeBas).connect(glisse.vent).connect(son.sortie);
+    source.start();
+  }
+  return ctx;
+}
+/** Une note de la boîte à outils, le bruit de la neige prêt avec elle. */
+function note(frequence, duree, options) {
+  if (audio()) son.note(frequence, duree, options);
+}
+/** Un souffle de bruit filtré : la neige qui gicle, un choc, un départ en schuss. */
+function souffle(frequence, duree, options) {
+  const ctx = audio();
+  if (!ctx) return;
+  const o = options || {}, t = ctx.currentTime + (o.apres || 0);
+  const source = ctx.createBufferSource(), filtre = ctx.createBiquadFilter(), gain = ctx.createGain();
+  source.buffer = glisse.bruit;
+  filtre.type = o.type || 'bandpass'; filtre.Q.value = o.q || 0.8;
+  filtre.frequency.setValueAtTime(frequence, t);
+  if (o.vers) filtre.frequency.exponentialRampToValueAtTime(o.vers, t + duree);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(o.volume || 0.2, t + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + duree);
+  source.connect(filtre).connect(gain).connect(son.sortie);
+  source.start(t, Math.random() * 1.5); source.stop(t + duree + 0.05);
+}
+function basculerSon() {
+  const coupe = son.basculer();
+  $('btn-son').setAttribute('aria-pressed', String(coupe));
+  $('btn-son').setAttribute('aria-label', coupe ? 'Remettre le son' : 'Couper le son');
+}
+/** Le crissement suit la prise de carres, le vent suit la vitesse. */
+function regler(carre, vent) {
+  if (!glisse.carre) return;
+  const t = son.ctx.currentTime;
+  glisse.carre.gain.setTargetAtTime(carre * 0.2, t, 0.05);
+  glisse.filtre.frequency.setTargetAtTime(1300 + 2400 * carre, t, 0.08);
+  glisse.vent.gain.setTargetAtTime(vent * 0.14, t, 0.12);
+}
+const GAMME = [0, 2, 4, 7, 9, 12, 14, 16];   // une porte après l'autre, la série monte la gamme
+function carillon(serie) {
+  const f = 523.25 * Math.pow(2, GAMME[borne(serie, 1, GAMME.length) - 1] / 12);
+  note(f, 0.28, { forme: 'triangle', volume: 0.16 });
+  note(f * 2, 0.4, { volume: 0.07, apres: 0.02 });
+}
+function fanfare(rang) {
+  const airs = { 3: [523, 659, 784, 1047, 1319], 2: [523, 659, 784, 1047], 1: [523, 659, 784], 0: [392, 330] };
+  airs[rang].forEach((f, i) => note(f, i === airs[rang].length - 1 ? 0.6 : 0.16, { forme: 'triangle', volume: 0.16, apres: i * 0.13 }));
+  if (rang === 3) note(2093, 0.9, { volume: 0.05, apres: 0.6 });
+}
+
+// ===== La piste =====
+/** L'axe de la piste : elle serpente doucement dans la forêt. */
+const axe = (y) => 8 * Math.sin(y / 88) + 3.5 * Math.sin(y / 31 + 1.3);
+
+/** Les portes, la ligne d'arrivée, les sapins et le public, depuis une graine. */
+function tracer(graine) {
+  const alea = hasard(graine), portes = [], arbres = [], foule = [];
+  let y = DEPART_M, cote = alea() < 0.5 ? -1 : 1;
+  for (let i = 0; i < NB_PORTES; i++) {
+    const a = i / (NB_PORTES - 1);
+    const ecart = mele(ECART_DEBUT, ECART_FIN, a) * (0.85 + 0.3 * alea());
+    portes.push({ x: axe(y) + cote * ecart, y, l: mele(LARGEUR_DEBUT, LARGEUR_FIN, a), bleue: i % 2 === 1 });
+    if (i % 8 !== 6) cote = -cote;   // parfois deux portes du même côté : une ligne droite où lâcher les skis
+    y += mele(ESPACE_DEBUT, ESPACE_FIN, a) * (0.92 + 0.16 * alea());
+  }
+  const arrivee = portes[NB_PORTES - 1].y + ARRIVEE_APRES;
+  for (let ay = -46; ay < arrivee + 76; ay += 2.6) {
+    for (const s of [-1, 1]) {
+      const garde = alea(), loin = FORET_M + 34 * Math.pow(alea(), 1.5), taille = 0.75 + 0.6 * alea(), dx = (alea() - 0.5) * 2, dy = alea() * 2.4, tour = alea() < 0.5 ? 0 : 1;
+      if (garde > 0.66 || (ay > arrivee - 14 && ay < arrivee + 34 && loin < 21)) continue;   // l'aire d'arrivée reste dégagée
+      arbres.push({ x: axe(ay) + s * loin + dx, y: ay + dy, r: 2.3 * taille, tronc: 0.8 * taille, h: 7.5 * taille, tour });
+    }
+  }
+  arbres.sort((a, b) => a.y - b.y);
+  const teintes = ['#F26B5E', '#5F87C2', '#FFCA3B', '#3DCB8E', '#A592FF', '#F2A541', '#2B3036'];
+  for (let fy = arrivee - 9; fy < arrivee + 27; fy += 1.15) {
+    for (const s of [-1, 1]) {
+      foule.push({ x: axe(arrivee) + s * (12.2 + 2.6 * alea()), y: fy + alea() * 0.6, teinte: teintes[Math.floor(alea() * teintes.length)], phase: alea() * 6.28 });
+    }
+  }
+  return { portes, arrivee, arbres, foule };
+}
+const PISTE = tracer(GRAINE);
+
+// ===== La descente : des fonctions sans effet hors de la partie qu'on leur donne =====
+function nouvellePartie() {
+  return {
+    x: axe(0), y: 0, cap: 0, cible: 0, omega: 0, v: 0, parti: false,
+    temps: 0, penalites: 0, prochaine: 0, etats: new Int8Array(NB_PORTES), passees: 0, manquees: 0, serie: 0,
+    schuss: 0, schussPret: 0, sonne: 0, heurts: 0, arrive: false, arret: 0,
+    traces: [], sillage: 0, journal: [], jalon: 0, faits: [],
+  };
+}
+
+/** L'angle du corps de Reachy (degrés, positif vers la droite de la page) est le cap du skieur, un pour un. */
+const capManette = (degres) => borne((+degres || 0) * Math.PI / 180, -CAP_MAX, CAP_MAX);
+/** Le cap que vise un doigt posé sur la piste, depuis le skieur. */
+const capVers = (dx, dy) => borne(Math.atan2(dx, Math.max(dy, 1)), -CAP_MAX, CAP_MAX);
+
+/** La consigne de cap : le clavier la fait tourner, sinon le doigt, sinon la manette ; personne : elle tient. */
+function consigne(cible, entree, dt) {
+  if (entree.gauche !== entree.droite) return borne(cible + (entree.droite ? 1 : -1) * ROT_CLAVIER * dt, -CAP_MAX, CAP_MAX);
+  if (entree.doigt !== null) return borne(entree.doigt, -CAP_MAX, CAP_MAX);
+  if (entree.manette !== null) return borne(entree.manette, -CAP_MAX, CAP_MAX);
+  return cible;
+}
+
+/** L'accélération le long des skis : la pente tire, la neige, l'air et les carres retiennent. */
+function acceleration(v, cap, omega, schuss) {
+  const glisse = schuss ? SCHUSS_AIR : 1;
+  return PENTE * Math.cos(cap) - (v > 0 ? FROTTEMENT * glisse : 0) - AIR * glisse * v * v - CARRE * Math.abs(omega) * v;
+}
+
+/** Une porte se franchit entre ses deux piquets. */
+const porteFranchie = (porte, x) => Math.abs(x - porte.x) <= porte.l / 2 + MARGE_PORTE;
+
+/** Le skieur passe la hauteur de la porte suivante, à l'abscisse x : franchie, ou manquée et pénalisée. */
+function franchir(p, porte, x) {
+  const dedans = porteFranchie(porte, x);
+  p.etats[p.prochaine] = dedans ? 1 : -1;
+  if (dedans) { p.passees += 1; p.serie += 1; } else { p.manquees += 1; p.serie = 0; p.penalites += PENALITE; }
+  p.faits.push({ type: dedans ? 'porte' : 'manquee', i: p.prochaine });
+  p.prochaine += 1;
+}
+
+/** Le sapin dont le tronc touche le skieur, ou null. Les sapins sont rangés du haut au bas de la piste. */
+function sapinTouche(piste, x, y) {
+  const a = piste.arbres;
+  let bas = 0, haut = a.length;
+  while (bas < haut) { const m = (bas + haut) >> 1; if (a[m].y < y - 3) bas = m + 1; else haut = m; }
+  for (let i = bas; i < a.length && a[i].y <= y + 3; i++) {
+    if (Math.hypot(a[i].x - x, a[i].y - y) < a[i].tronc + RAYON_SKIEUR) return a[i];
+  }
+  return null;
+}
+
+/** Les skis tournent vers la consigne, jamais plus vite qu'ils ne le peuvent. */
+function tourner(p, dt) {
+  const avant = p.cap;
+  p.cap += borne((p.cible - p.cap) * (1 - Math.exp(-dt / CAP_TAU)), -ROT_MAX * dt, ROT_MAX * dt);
+  p.omega = (p.cap - avant) / dt;
+}
+
+/** Un pas de la descente. Ce qui arrive (porte, sapin, arrivée…) est noté dans p.faits : l'écran et le son y réagissent. */
+function pas(p, piste, entree, dt) {
+  if (!p.parti) { p.parti = true; p.v = ELAN; }
+  if (p.arrive) {
+    p.arret += dt;
+    p.cible = (p.cap >= 0 ? 1 : -1) * CAP_MAX;   // les skis en travers : le dérapage de l'arrivée
+  } else {
+    p.temps += dt;
+    p.cible = consigne(p.cible, entree, dt);
+    if (entree.schuss && p.schussPret <= 0) {
+      p.schuss = SCHUSS_S; p.schussPret = SCHUSS_REPOS; p.v += SCHUSS_ELAN;
+      p.faits.push({ type: 'schuss' });
+    }
+  }
+  tourner(p, dt);
+  p.schuss = Math.max(0, p.schuss - dt); p.schussPret = Math.max(0, p.schussPret - dt); p.sonne = Math.max(0, p.sonne - dt);
+  p.v = Math.max(0, p.v + (acceleration(p.v, p.cap, p.omega, p.schuss > 0) - (p.arrive ? FREIN_ARRIVEE : 0)) * dt);
+  const x0 = p.x, y0 = p.y;
+  p.x += p.v * Math.sin(p.cap) * dt; p.y += p.v * Math.cos(p.cap) * dt;
+  p.x = borne(p.x, axe(p.y) - BORD_M, axe(p.y) + BORD_M);
+  while (p.prochaine < piste.portes.length && p.y >= piste.portes[p.prochaine].y) {
+    const porte = piste.portes[p.prochaine];
+    franchir(p, porte, x0 + (p.x - x0) * (porte.y - y0) / Math.max(1e-9, p.y - y0));
+  }
+  if (p.sonne <= 0 && Math.abs(p.x - axe(p.y)) > FORET_M - 4) {
+    const sapin = sapinTouche(piste, p.x, p.y);
+    if (sapin) {
+      const cote = p.x >= sapin.x ? 1 : -1;
+      p.x = sapin.x + cote * (sapin.tronc + RAYON_SKIEUR + 0.1);
+      p.v *= ARBRE_RESTE; p.sonne = 0.7; p.heurts += 1; p.serie = 0;
+      p.faits.push({ type: 'sapin', x: sapin.x, y: sapin.y });
+    }
+  }
+  if (!p.arrive && p.y >= piste.arrivee) {
+    p.arrive = true;
+    p.temps -= (p.y - piste.arrivee) / Math.max(1, p.v * Math.cos(p.cap));   // le chrono s'arrête sur la ligne
+    p.faits.push({ type: 'arrivee' });
+  }
+  p.sillage += p.v * dt;
+  if (p.sillage >= 0.45) {
+    p.sillage = 0;
+    p.traces.push(p.x, p.y, p.cap, borne(Math.abs(p.omega) * p.v / 30, 0, 1));
+  }
+  if (!p.arrive) {
+    p.jalon += dt;
+    if (p.jalon >= 0.1) { p.jalon -= 0.1; p.journal.push(p.x, p.y, p.cap); }
+  }
+}
+
+/** Le temps total d'une descente : le chrono et les pénalités. */
+const total = (p) => p.temps + p.penalites;
+/** 3 : or, 2 : argent, 1 : bronze, 0 : rien. */
+const rang = (temps) => (temps <= OR ? 3 : temps <= ARGENT ? 2 : temps <= BRONZE ? 1 : 0);
+const medaille = (temps) => ['', 'bronze', 'argent', 'or'][rang(temps)];
+
+/** Le cap d'un skieur qui vise la porte suivante, un peu vers l'intérieur de la trajectoire. */
+function viser(p, piste, finesse) {
+  const porte = piste.portes[p.prochaine], suite = piste.portes[p.prochaine + 1];
+  if (!porte) return Math.atan2(axe(piste.arrivee) - p.x, Math.max(8, piste.arrivee - p.y));
+  let x = porte.x;
+  if (suite) x += borne(suite.x - porte.x, -1, 1) * porte.l * 0.5 * finesse;
+  return borne(Math.atan2(x - p.x, Math.max(2.5, porte.y - p.y)), -1.2, 1.2);
+}
+/** Un pilote automatique : la démonstration de l'accueil, et les autotests. */
+const pilote = (finesse, ose) => (p, piste) => {
+  const cap = viser(p, piste, finesse);
+  return { gauche: false, droite: false, doigt: cap, manette: null, schuss: ose && Math.abs(cap) < 0.3 };
+};
+const TOUT_DROIT = () => ({ gauche: false, droite: false, doigt: 0, manette: null, schuss: false });
+
+/** Une descente entière, sans écran ni son : ce qu'elle donne. */
+function simuler(conduite, piste, limite) {
+  const p = nouvellePartie();
+  let t = 0, sain = 1, vmax = 0;
+  while (!p.arrive && t < limite) {
+    pas(p, piste, conduite(p, piste), PAS);
+    t += PAS; vmax = Math.max(vmax, p.v);
+    if (!(isFinite(p.x) && isFinite(p.y) && isFinite(p.v) && isFinite(p.cap) && isFinite(p.temps))) { sain = 0; break; }
+  }
+  return { fini: p.arrive ? 1 : 0, temps: total(p), portes: p.passees, manquees: p.manquees, penalites: p.penalites, heurts: p.heurts, sain, vmax };
+}
+
+// ===== La partie à l'écran =====
+const clavier = { gauche: false, droite: false };
+const doigt = { actif: false, cap: 0 };
+const PILOTE_DEMO = pilote(0.3, true);
+let partie = nouvellePartie();
+let demo = nouvellePartie();     // derrière l'accueil, la piste se descend toute seule
+let mode = 'accueil';            // 'accueil', 'place', 'decompte', 'jeu', 'pause', 'fin'
+let depart = 0;                  // le décompte : secondes restantes
+let veutSchuss = false;
+let record = null;               // le meilleur temps de la session, en mémoire
+let fantome = null;              // la descente du record, rejouée en transparence
+let finMinuteur = 0;
+
+const scene = () => (mode === 'accueil' ? demo : partie);
+
+function passer(nouveau) {
+  mode = nouveau;
+  document.body.dataset.mode = nouveau;
+}
+
+function lireEntree() {
+  return {
+    gauche: clavier.gauche, droite: clavier.droite,
+    doigt: doigt.actif ? doigt.cap : null,
+    manette: reachy.etat.manette === 'oui' ? capManette(reachy.pad.corps) : null,
+    schuss: veutSchuss,
+  };
+}
+
+function montrer(ecran) {
+  for (const id of ['accueil', 'place', 'pause', 'fin']) $(id).hidden = id !== ecran;
+}
+
+let attente = null;   // le « Jouer » en cours : de quoi partir sans Reachy
+
+/** « Jouer » : la boîte à outils demande Reachy s'il y en a un (réveillé d'abord s'il dormait), sinon au clavier. */
+function lancer() {
+  if (mode === 'place') return;
+  audio();
+  clearTimeout(finMinuteur);
+  partie = nouvellePartie();
+  veutSchuss = false; doigt.actif = false;
+  rafraichir(partie);
+  attente = reachy.lancer(PROFIL, {
+    attendre(titre) {
+      passer('place');
+      montrer('place');
+      $('place-titre').textContent = titre;
+    },
+    partir(avecManette, raison) {
+      if (raison === 'absent') annoncer('Sans manette : au clavier');   // demandé, il n'est pas venu
+      partir();
+    },
+  });
+}
+
+function partir() {
+  passer('decompte');
+  depart = DECOMPTE;
+  montrer(null);
+  battre();
+}
+
+function battre() {
+  const n = Math.ceil(depart);
+  $('decompte').hidden = false;
+  $('decompte').innerHTML = '<span>' + n + '</span>';
+  note(440, 0.12, { forme: 'triangle', volume: 0.15 });
+}
+
+/** La manette rendue en cours de descente (Reachy s'endort, « Rendre la main ») : on le dit, le clavier prend le relais. */
+reachy.quand('manette', (etat, avant) => {
+  if ((mode === 'jeu' || mode === 'decompte') && avant === 'oui' && etat === 'non') annoncer('Manette rendue : au clavier');
+});
+
+/** Une antenne tapée : schuss. */
+reachy.quand('appui', () => { if (mode === 'jeu') veutSchuss = true; });
+
+/** Ce qui vient d'arriver dans la descente : le son, l'annonce, et Reachy s'il regarde. */
+function reagir(fait) {
+  const p = partie;
+  if (fait.type === 'porte') {
+    eclats[fait.i] = 1;
+    carillon(p.serie);
+    reachy.envoyer('look', regardSuivant(p));
+  } else if (fait.type === 'manquee') {
+    eclats[fait.i] = 1;
+    secousse = 7;
+    note(140, 0.3, { vers: 55, volume: 0.3 });
+    annoncer('Porte manquée : +' + PENALITE + ' s', true);
+    reachy.emotion('oops1');
+  } else if (fait.type === 'sapin') {
+    secousse = 14;
+    note(110, 0.35, { vers: 45, volume: 0.35 });
+    souffle(900, 0.35, { vers: 300, volume: 0.3 });
+    for (let i = 0; i < 26; i++) gicler(fait.x + (Math.random() - 0.5) * 2, fait.y + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 7, 1 + Math.random() * 4, 0.5 + Math.random() * 0.6);
+    annoncer('Aïe ! Un sapin', true);
+    reachy.emotion('surprised1');
+  } else if (fait.type === 'schuss') {
+    souffle(500, 0.6, { vers: 2600, volume: 0.16, q: 1.4 });
+  } else if (fait.type === 'arrivee') {
+    finir();
+  }
+}
+
+/** Reachy spectateur suit le slalom des yeux : à chaque porte passée, il regarde la suivante (ou la ligne d'arrivée). */
+function regardSuivant(p) {
+  const porte = PISTE.portes[p.prochaine];
+  const x = porte ? porte.x : axe(PISTE.arrivee), y = porte ? porte.y : PISTE.arrivee;
+  return regardVers(versEcranX(x), versEcranY(y), largeur, hauteur);
+}
+
+/** La ligne est passée : le chrono s'arrête, Reachy reprend son corps et fête, le skieur dérape, puis l'écran de fin. */
+function finir() {
+  const p = partie, temps = total(p), obtenu = rang(temps), battu = record === null || temps < record;
+  passer('fin');
+  if (battu) { record = temps; fantome = p.journal.slice(); }
+  fanfare(obtenu);
+  reachy.feter(EMOTION_MEDAILLE[medaille(temps)]);
+  $('medaille').toggleAttribute('hidden', obtenu === 0);   // un élément SVG n'a pas de propriété hidden
+  $('medaille').style.setProperty('--medaille', 'var(--' + (medaille(temps) || 'or') + ')');
+  $('medaille-rang').textContent = String(4 - obtenu);
+  $('fin-titre').textContent = ['Arrivé !', 'Médaille de bronze', 'Médaille d’argent', 'Médaille d’or !'][obtenu];
+  $('fin-score').textContent = formaterTemps(temps);
+  $('fin-detail').textContent = resumer(p, battu);
+  $('fin-suite').textContent = prochainSeuil(temps);
+  finMinuteur = setTimeout(() => { if (mode === 'fin') montrer('fin'); }, 1300);
+}
+
+/** La descente en une phrase : les portes, les pénalités, le record de la session. */
+function resumer(p, battu) {
+  const portes = p.manquees === 0
+    ? 'Les ' + NB_PORTES + ' portes, sans une faute.'
+    : p.passees + ' portes sur ' + NB_PORTES + ' : ' + p.manquees + (p.manquees > 1 ? ' manquées' : ' manquée') + ', +' + p.penalites + ' s.';
+  const meilleur = battu ? ' C’est le record de la session.' : ' Record de la session : ' + formaterTemps(record) + ' s.';
+  return portes + meilleur;
+}
+
+/** Le temps de la médaille au-dessus, pour la prochaine descente. */
+function prochainSeuil(temps) {
+  const obtenu = rang(temps);
+  if (obtenu === 3) return 'Ton fantôme t’attend sur la piste : bats-le.';
+  const noms = ['Le bronze', 'L’argent', 'L’or'], seuils = [BRONZE, ARGENT, OR];
+  return noms[obtenu] + ' est à ' + formaterTemps(seuils[obtenu]) + ' s.';
+}
+
+function basculerPause() {
+  if (mode === 'jeu') { passer('pause'); montrer('pause'); }
+  else if (mode === 'pause') { passer('jeu'); montrer(null); }
+}
+
+let annonceMinuteur = 0;
+function annoncer(texte, faute) {
+  const a = $('annonce');
+  a.textContent = texte;
+  a.classList.toggle('faute', !!faute);
+  a.classList.add('vu');
+  clearTimeout(annonceMinuteur);
+  annonceMinuteur = setTimeout(() => a.classList.remove('vu'), 1800);
+}
+
+// ===== Le dessin =====
+const toile = $('toile'), ctx = toile.getContext('2d');
+const style = getComputedStyle(document.documentElement);
+const teinte = (nom) => style.getPropertyValue(nom).trim();
+const C = {
+  neige: teinte('--neige'), graphite: teinte('--graphite'), porcelaine: teinte('--porcelaine'),
+  rouge: teinte('--faute'), bleue: teinte('--porte-bleue'), verte: teinte('--ecoute'), glace: teinte('--glace'),
+};
+const SANS_ELAN = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let largeur = 0, hauteur = 0, base = 18, ech = 18, es = 27, ancre = 0.3, margeBas = 100;
+let motif = null, soleil = null, froid = null;
+const cam = { x: partie.x, y: 0, zoom: 1 };
+let particules = [], echarpe = [], filets = [];
+let eclats = new Float32Array(NB_PORTES);
+let secousse = 0, penche = 0, gerbe = 0, horloge = 0;
+const vu = { chrono: '', portes: '', vitesse: '', pret: -1 };
+
+const versEcranX = (x) => (x - cam.x) * ech + largeur / 2;
+const versEcranY = (y) => (y - cam.y) * ech + hauteur * ancre;
+/** Ce qui est haut de h mètres se dessine décalé vers les bords : la piste est vue d'en haut, de près. */
+const eleve = (sx, sy, h) => [sx + (sx - largeur / 2) * h * FUITE, sy + (sy - hauteur * 0.42) * h * FUITE];
+
+/** La neige : une tuile qui se répète, avec ses bosses, le velours du damage et ses grains. */
+function tuileNeige() {
+  const T = 256, c = document.createElement('canvas'), g = c.getContext('2d'), alea = hasard(7);
+  c.width = c.height = T;
+  for (let i = 0; i < 30; i++) {
+    const x = alea() * T, y = alea() * T, r = 22 + alea() * 50, ombre = alea() < 0.62;
+    for (const dx of [-T, 0, T]) for (const dy of [-T, 0, T]) {
+      const d = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+      d.addColorStop(0, ombre ? 'rgba(118, 150, 198, 0.13)' : 'rgba(255, 255, 255, 0.6)');
+      d.addColorStop(1, ombre ? 'rgba(118, 150, 198, 0)' : 'rgba(255, 255, 255, 0)');
+      g.fillStyle = d;
+      g.fillRect(x + dx - r, y + dy - r, 2 * r, 2 * r);
+    }
+  }
+  g.fillStyle = 'rgba(108, 140, 188, 0.055)';
+  for (let x = 0; x < T; x += 8) g.fillRect(x, 0, 2, T);
+  for (let i = 0; i < 520; i++) {
+    g.fillStyle = 'rgba(96, 128, 178, ' + (0.08 + alea() * 0.16).toFixed(3) + ')';
+    g.fillRect(alea() * T, alea() * T, 1.5, 1.5 + alea() * 2.5);
+  }
+  return c;
+}
+
+/** Les branches d'un étage : les sommets d'une rosette, pointes et creux en alternance, jamais deux pareils. */
+function branchesDe(r, pointes, creux, tour, alea) {
+  const sommets = [];
+  for (let i = 0; i < pointes * 2; i++) {
+    const a = tour + (i + (alea() - 0.5) * 0.5) * Math.PI / pointes, d = r * (i % 2 ? creux : 1 - 0.2 * alea());
+    sommets.push([Math.cos(a) * d, Math.sin(a) * d]);
+  }
+  return sommets;
+}
+
+/** Le contour d'un étage, centré en (cx, cy) : ses pointes et ses creux arrondis. */
+function rosette(g, sommets, cx, cy) {
+  const n = sommets.length, ARRONDI = 0.3;
+  g.beginPath();
+  for (let i = 0; i < n; i++) {
+    const [x, y] = sommets[i], [ax, ay] = sommets[(i + n - 1) % n], [bx, by] = sommets[(i + 1) % n];
+    g.lineTo(cx + x + (ax - x) * ARRONDI, cy + y + (ay - y) * ARRONDI);
+    g.quadraticCurveTo(cx + x, cy + y, cx + x + (bx - x) * ARRONDI, cy + y + (by - y) * ARRONDI);
+  }
+  g.closePath();
+}
+
+/** Les étages d'un sapin vu d'en haut, du plus large au plus haut : chacun plus petit (au dessin) et d'un graphite
+ * plus clair, son cœur assombri par l'étage du dessus, la neige posée du côté du soleil bas (en haut à gauche) :
+ * un liseré sur le bord des branches, et des paquets restés dessus. Deux variantes de quatre étages. */
+function etagesSapin() {
+  const T = 176, R = T / 2 - 4, graphites = ['#1D2024', '#272B30', '#30353B', '#3A4048'];
+  const pointes = [10, 9, 8, 6], creux = [0.66, 0.64, 0.62, 0.58], etages = [];
+  const neige = document.createElement('canvas'), n = neige.getContext('2d'), alea = hasard(31);
+  neige.width = neige.height = T;
+  for (let variante = 0; variante < 2; variante++) {
+    for (let j = 0; j < 4; j++) {
+      const c = document.createElement('canvas'), g = c.getContext('2d');
+      const sommets = branchesDe(R, pointes[j], creux[j], j * 0.45 + variante * 0.6, alea);
+      c.width = c.height = T;
+      rosette(g, sommets, T / 2, T / 2);
+      g.fillStyle = graphites[j];
+      g.fill();
+      g.save();
+      g.clip();
+      const versant = g.createLinearGradient(T * 0.2, T * 0.2, T * 0.85, T * 0.85);
+      versant.addColorStop(0, 'rgba(255, 255, 255, 0.07)');
+      versant.addColorStop(1, 'rgba(0, 0, 0, 0.36)');
+      g.fillStyle = versant;
+      g.fillRect(0, 0, T, T);
+      const coeur = g.createRadialGradient(T / 2, T / 2, 0, T / 2, T / 2, R * 0.6);
+      coeur.addColorStop(0, 'rgba(8, 10, 12, ' + (j < 3 ? 0.6 : 0.4) + ')');
+      coeur.addColorStop(1, 'rgba(8, 10, 12, 0)');
+      g.fillStyle = coeur;
+      g.fillRect(0, 0, T, T);
+      // Le liseré : l'étage, moins lui-même reculé vers l'ombre. Un large et léger, puis un étroit et franc.
+      for (const [recul, force] of [[0.24, 0.5], [0.11, 1]]) {
+        n.globalCompositeOperation = 'source-over';
+        n.clearRect(0, 0, T, T);
+        rosette(n, sommets, T / 2, T / 2);
+        n.fillStyle = '#F4F7FA';
+        n.fill();
+        n.globalCompositeOperation = 'destination-out';
+        rosette(n, sommets, T / 2 + R * recul, T / 2 + R * recul);
+        n.fill();
+        g.globalAlpha = force;
+        g.drawImage(neige, 0, 0);
+      }
+      // Les paquets de neige, du côté du soleil.
+      g.globalAlpha = 1;
+      for (let k = 0; k < 4; k++) {
+        const a = -0.75 * Math.PI + (alea() - 0.5) * 1.9, d = R * (0.42 + 0.36 * alea()), r = R * (0.13 + 0.1 * alea());
+        const x = T / 2 + Math.cos(a) * d, y = T / 2 + Math.sin(a) * d, paquet = g.createRadialGradient(x, y, 0, x, y, r);
+        paquet.addColorStop(0, 'rgba(247, 249, 251, 0.95)');
+        paquet.addColorStop(0.65, 'rgba(240, 244, 249, 0.8)');
+        paquet.addColorStop(1, 'rgba(240, 244, 249, 0)');
+        g.fillStyle = paquet;
+        g.fillRect(x - r, y - r, 2 * r, 2 * r);
+      }
+      g.restore();
+      etages.push(c);
+    }
+  }
+  return etages;
+}
+
+/** Une ombre douce : un disque flou, qu'on étire dans le sens du soleil. */
+function disqueOmbre() {
+  const T = 128, c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = c.height = T;
+  const d = g.createRadialGradient(T / 2, T / 2, 0, T / 2, T / 2, T / 2);
+  d.addColorStop(0, 'rgba(62, 94, 148, 0.34)');
+  d.addColorStop(0.6, 'rgba(62, 94, 148, 0.2)');
+  d.addColorStop(1, 'rgba(62, 94, 148, 0)');
+  g.fillStyle = d;
+  g.fillRect(0, 0, T, T);
+  return c;
+}
+const TUILE = tuileNeige(), ETAGES = etagesSapin(), OMBRE = disqueOmbre();
+const ANGLE_OMBRE = Math.atan2(OMBRE_Y, OMBRE_X);
+
+/** La toile a changé de taille (la boîte à outils la tient nette) : l'échelle, les marges et les dégradés suivent. */
+function ajuster(l, h) {
+  largeur = l; hauteur = h;
+  if (!largeur || !hauteur) return;
+  base = Math.max(5, Math.min(largeur / VUE_L, hauteur / VUE_H));
+  ancre = hauteur > largeur ? 0.25 : 0.27;
+  margeBas = $('pied').offsetHeight + 14;
+  motif = ctx.createPattern(TUILE, 'repeat');
+  const loin = Math.max(largeur, hauteur);
+  soleil = ctx.createRadialGradient(largeur * 0.08, -hauteur * 0.06, 0, largeur * 0.08, -hauteur * 0.06, loin * 0.95);
+  soleil.addColorStop(0, 'rgba(255, 222, 158, 0.42)');
+  soleil.addColorStop(0.45, 'rgba(255, 232, 190, 0.12)');
+  soleil.addColorStop(1, 'rgba(255, 232, 190, 0)');
+  froid = ctx.createLinearGradient(0, 0, largeur, hauteur);
+  froid.addColorStop(0.45, 'rgba(96, 132, 190, 0)');
+  froid.addColorStop(1, 'rgba(96, 132, 190, 0.16)');
+}
+
+/** L'écran repart de la partie qu'on lui montre : la caméra sur le skieur, plus de neige en l'air. */
+function rafraichir(p) {
+  cam.x = p.x; cam.y = p.y; cam.zoom = 1;
+  particules = []; eclats = new Float32Array(NB_PORTES);
+  echarpe = [];
+  for (let i = 0; i < NB_ECHARPE; i++) echarpe.push({ x: p.x, y: p.y - 0.15 - (i + 1) * SEG_ECHARPE });
+  secousse = 0; penche = 0; gerbe = 0;
+}
+
+/** Les filets de vent passent sur les côtés de l'écran : le milieu reste à la piste. */
+const bordAuHasard = () => (Math.random() < 0.5 ? Math.random() * 0.3 : 1 - Math.random() * 0.3);
+
+function gicler(x, y, vx, vy, vie) {
+  if (particules.length < 260) particules.push({ x, y, vx, vy, vie, age: 0, r: 0.14 + Math.random() * 0.22 });
+}
+
+/** Tout ce qui bouge sans compter dans la descente : la caméra, la neige qui gicle, l'écharpe, les chiffres. */
+function animer(dt) {
+  const p = scene(), enPiste = mode === 'jeu' || mode === 'accueil' || (mode === 'fin' && p.arret < 3);
+  horloge += dt;
+  const dx = Math.sin(p.cap), dy = Math.cos(p.cap);
+  cam.x += (p.x + dx * p.v * 0.3 - cam.x) * (1 - Math.exp(-dt * 3.4));
+  cam.y = p.y;
+  cam.zoom += (1 - 0.15 * lisse(p.v / 24) - cam.zoom) * (1 - Math.exp(-dt * 1.8));
+  ech = base * cam.zoom;
+  es = Math.max(ech * 2.1, 24);
+  const carre = enPiste ? borne(Math.abs(p.omega) * p.v / 30, 0, 1) : 0;
+  penche += (borne(p.omega * p.v / 36, -1, 1) - penche) * (1 - Math.exp(-dt * 10));
+  // La neige gicle du côté extérieur du virage.
+  gerbe += carre * 190 * dt + (p.schuss > 0 && enPiste ? 24 * dt : 0);
+  while (gerbe >= 1) {
+    gerbe -= 1;
+    const cote = p.omega >= 0 ? -1 : 1, jet = 1.5 + Math.random() * 4 * carre;
+    gicler(p.x + dy * cote * 0.3 - dx * 0.5, p.y - dx * cote * 0.3 - dy * 0.5,
+      dy * cote * jet + dx * p.v * 0.3 + (Math.random() - 0.5), -dx * cote * jet + dy * p.v * 0.3 + (Math.random() - 0.5), 0.35 + Math.random() * 0.5);
+  }
+  for (const q of particules) {
+    q.age += dt; q.x += q.vx * dt; q.y += q.vy * dt;
+    q.vx *= Math.exp(-dt * 3.2); q.vy *= Math.exp(-dt * 3.2); q.r += dt * 0.5;
+  }
+  particules = particules.filter((q) => q.age < q.vie);
+  // L'écharpe : une chaîne tirée vers l'arrière par le vent de la course.
+  let ax = p.x - dx * 0.15, ay = p.y - dy * 0.15;
+  const vent = borne(p.v / 12, 0, 1);
+  for (let i = 0; i < echarpe.length; i++) {
+    const e = echarpe[i], onde = Math.sin(horloge * 11 - i * 1.1) * 0.5 * vent;
+    let ux = e.x - ax, uy = e.y - ay;
+    const n = Math.hypot(ux, uy) || 1, tire = 0.04 + 0.3 * vent;
+    ux = ux / n * (1 - tire) + (-dx + dy * onde) * tire; uy = uy / n * (1 - tire) + (-dy - dx * onde) * tire;
+    const m = Math.hypot(ux, uy) || 1;
+    e.x = ax + ux / m * SEG_ECHARPE; e.y = ay + uy / m * SEG_ECHARPE;
+    ax = e.x; ay = e.y;
+  }
+  for (let i = 0; i < eclats.length; i++) if (eclats[i] > 0) eclats[i] = Math.max(0, eclats[i] - dt * 2);
+  secousse = Math.max(0, secousse - dt * 40);
+  // Les filets de vent : devant l'œil, ils filent plus vite que la neige.
+  for (const f of filets) {
+    f.x -= dx * p.v * ech * 1.7 * dt / largeur; f.y -= dy * p.v * ech * 1.7 * dt / hauteur;
+    if (f.y < -0.1) { f.y += 1.2; f.x = bordAuHasard(); }
+    if (f.x < -0.1) f.x += 1.2; else if (f.x > 1.1) f.x -= 1.2;
+  }
+  regler(mode === 'jeu' || (mode === 'fin' && p.arret < 3) ? carre : 0, mode === 'jeu' ? lisse(p.v / 22) : 0);
+  afficherChiffres(p);
+}
+
+function afficherChiffres(p) {
+  const chrono = formaterTemps(total(p), mode === 'fin' ? 2 : 1), portes = p.passees + '/' + NB_PORTES, vitesse = String(Math.round(p.v * 3.6));
+  if (chrono !== vu.chrono) $('chrono').textContent = vu.chrono = chrono;
+  if (portes !== vu.portes) $('portes').textContent = vu.portes = portes;
+  if (vitesse !== vu.vitesse) $('vitesse').textContent = vu.vitesse = vitesse;
+  const pret = Math.round((1 - p.schussPret / SCHUSS_REPOS) * 50) / 50;
+  if (pret !== vu.pret) {
+    vu.pret = pret;
+    $('btn-schuss').style.setProperty('--pret', String(pret));
+    $('btn-schuss').dataset.pret = pret >= 1 ? 'oui' : 'non';
+  }
+}
+
+function rond(x, y, l, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, l, h, r); else ctx.rect(x, y, l, h);
+}
+
+function ombrePortee(sx, sy, longueur, epaisseur) {
+  ctx.save();
+  ctx.translate(sx + OMBRE_X * longueur * 0.42, sy + OMBRE_Y * longueur * 0.42);
+  ctx.rotate(ANGLE_OMBRE);
+  ctx.drawImage(OMBRE, -longueur * 0.62, -epaisseur / 2, longueur * 1.24, epaisseur);
+  ctx.restore();
+}
+
+/** Les deux traces des skis, de haut en bas de l'écran ; là où les carres ont mordu, elles se creusent. */
+function dessinerTraces(p, yHaut, yBas) {
+  const t = p.traces, n = t.length / 4;
+  let bas = 0, haut = n;
+  while (bas < haut) { const m = (bas + haut) >> 1; if (t[m * 4 + 1] < yHaut) bas = m + 1; else haut = m; }
+  const debut = Math.max(0, bas - 1);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const cote of [-1, 1]) {
+    ctx.beginPath();
+    for (let i = debut; i < n && t[i * 4 + 1] <= yBas; i++) {
+      const cap = t[i * 4 + 2];
+      ctx.lineTo(versEcranX(t[i * 4]) + Math.cos(cap) * cote * 0.44 * es, versEcranY(t[i * 4 + 1]) - Math.sin(cap) * cote * 0.44 * es);
+    }
+    ctx.strokeStyle = 'rgba(92, 124, 174, 0.34)';
+    ctx.lineWidth = Math.max(1.2, es * 0.1);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(84, 116, 168, 0.16)';
+  for (let i = Math.max(1, debut); i < n && t[i * 4 + 1] <= yBas; i++) {
+    const k = t[i * 4 + 3];
+    if (k < 0.3) continue;
+    ctx.lineWidth = es * (0.3 + 0.75 * k);
+    ctx.beginPath();
+    ctx.moveTo(versEcranX(t[i * 4 - 4]), versEcranY(t[i * 4 - 3]));
+    ctx.lineTo(versEcranX(t[i * 4]), versEcranY(t[i * 4 + 1]));
+    ctx.stroke();
+  }
+}
+
+/** Un piquet : son ombre, sa hampe qui penche vers le bord de l'écran, son fanion vers l'intérieur de la porte. */
+function dessinerPiquet(wx, wy, couleur, dedans, terne) {
+  const sx = versEcranX(wx), sy = versEcranY(wy), [hx, hy] = eleve(sx, sy, 2.4), l = Math.max(2, ech * 0.16);
+  ctx.strokeStyle = 'rgba(62, 94, 148, 0.3)';
+  ctx.lineWidth = l;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + OMBRE_X * ech * 2.8, sy + OMBRE_Y * ech * 2.8); ctx.stroke();
+  ctx.globalAlpha = terne ? 0.45 : 1;
+  ctx.strokeStyle = couleur;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
+  ctx.fillStyle = couleur;
+  ctx.beginPath(); ctx.moveTo(hx, hy - ech * 0.5); ctx.lineTo(hx + dedans * ech * 1.5, hy); ctx.lineTo(hx, hy + ech * 0.5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = C.porcelaine;
+  ctx.beginPath(); ctx.arc(hx, hy, Math.max(1.5, ech * 0.13), 0, 6.283); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function dessinerPortes(p, yHaut, yBas) {
+  for (let i = 0; i < PISTE.portes.length; i++) {
+    const g = PISTE.portes[i];
+    if (g.y < yHaut || g.y > yBas) continue;
+    const etat = p.etats[i], couleur = g.bleue ? C.bleue : C.rouge, eclat = p === partie ? eclats[i] : 0;
+    const x1 = versEcranX(g.x - g.l / 2), x2 = versEcranX(g.x + g.l / 2), sy = versEcranY(g.y), e = ech * (0.5 + 0.5 * eclat);
+    ctx.globalAlpha = etat === 0 ? 0.2 : etat === 1 ? 0.16 + 0.5 * eclat : 0.1;
+    ctx.fillStyle = etat === 1 ? C.verte : etat === -1 ? '#8A919C' : couleur;
+    rond(x1, sy - e, x2 - x1, 2 * e, e); ctx.fill();
+    ctx.globalAlpha = 1;
+    if (etat === -1) {
+      const c = ech * 0.55, cx = (x1 + x2) / 2;
+      ctx.strokeStyle = C.rouge; ctx.lineWidth = Math.max(2, ech * 0.16); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx - c, sy - c); ctx.lineTo(cx + c, sy + c); ctx.moveTo(cx + c, sy - c); ctx.lineTo(cx - c, sy + c); ctx.stroke();
+    }
+    dessinerPiquet(g.x - g.l / 2, g.y, couleur, 1, etat !== 0);
+    dessinerPiquet(g.x + g.l / 2, g.y, couleur, -1, etat !== 0);
+  }
+  // La porte suivante est encore sous l'écran : un chevron dit de quel côté elle vient.
+  const suivante = PISTE.portes[p.prochaine];
+  if (suivante && mode !== 'accueil' && versEcranY(suivante.y) > hauteur - margeBas + 10) {
+    const sx = borne(versEcranX(suivante.x), 26, largeur - 26), sy = hauteur - margeBas, t = 9;
+    ctx.strokeStyle = suivante.bleue ? C.bleue : C.rouge; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.moveTo(sx - t, sy - t * 0.6); ctx.lineTo(sx, sy + t * 0.5); ctx.lineTo(sx + t, sy - t * 0.6); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Le damier de la ligne, peint sur la neige. */
+function dessinerLigne(y, demi) {
+  const cx = axe(y), cote = 1.1, sy = versEcranY(y);
+  if (sy < -40 || sy > hauteur + 40) return;
+  for (let i = 0; i < Math.round(2 * demi / cote); i++) {
+    for (let j = 0; j < 2; j++) {
+      ctx.fillStyle = (i + j) % 2 ? 'rgba(22, 24, 27, 0.78)' : 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(versEcranX(cx - demi + i * cote), sy + (j - 1) * cote * ech, cote * ech + 0.5, cote * ech + 0.5);
+    }
+  }
+}
+
+/** Une banderole tendue entre deux mâts, au-dessus de la piste. */
+function dessinerBanderole(y, demi, h, texte) {
+  const cx = axe(y), sy = versEcranY(y);
+  if (sy < -hauteur * 0.4 || sy > hauteur * 1.4) return;
+  const gx = versEcranX(cx - demi), dx = versEcranX(cx + demi), [g2, hy] = eleve(gx, sy, h), [d2] = eleve(dx, sy, h);
+  const bande = Math.max(14, ech * 1.5 * (1 + h * FUITE));
+  ctx.strokeStyle = C.graphite; ctx.lineWidth = Math.max(3, ech * 0.3); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(gx, sy); ctx.lineTo(g2, hy); ctx.moveTo(dx, sy); ctx.lineTo(d2, hy); ctx.stroke();
+  ctx.fillStyle = C.graphite;
+  rond(g2, hy - bande / 2, d2 - g2, bande, bande * 0.22); ctx.fill();
+  ctx.fillStyle = C.rouge;
+  ctx.fillRect(g2 + bande * 0.3, hy + bande * 0.3, d2 - g2 - bande * 0.6, Math.max(2, bande * 0.08));
+  ctx.fillStyle = C.porcelaine;
+  ctx.font = '800 ' + Math.round(bande * 0.52) + 'px ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(texte, (g2 + d2) / 2, hy - bande * 0.04);
+}
+
+function dessinerFoule(p, yHaut, yBas) {
+  const r = Math.max(3, ech * 0.5), fete = p.arrive ? 1 : 0.2, milieu = versEcranX(axe(PISTE.arrivee));
+  for (const f of PISTE.foule) {
+    if (f.y < yHaut || f.y > yBas) continue;
+    const saut = Math.abs(Math.sin(horloge * 7 + f.phase)) * r * 0.8 * fete;
+    const sx = versEcranX(f.x), sy = versEcranY(f.y), vers = sx < milieu ? 1 : -1;
+    ctx.fillStyle = 'rgba(62, 94, 148, 0.24)';
+    ctx.beginPath(); ctx.ellipse(sx + r * 0.8, sy + r * 0.6, r * 1.1, r * 0.8, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = f.teinte;
+    ctx.beginPath(); ctx.ellipse(sx, sy - saut, r * 0.8, r * 1.1, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#F0D2BC';
+    ctx.beginPath(); ctx.arc(sx + vers * r * 0.3, sy - saut, r * 0.52, 0, 6.283); ctx.fill();
+  }
+}
+
+/** Reachy, vu d'en haut, sur ses skis : les skis et le corps, puis (après l'écharpe) la tête, ses yeux et ses antennes. */
+function dessinerSkieur(sx, sy, cap, incline, groupe, opacite, avecEcharpe) {
+  const u = es;
+  ctx.save();
+  ctx.globalAlpha = opacite;
+  ctx.translate(sx, sy);
+  ctx.rotate(-cap);
+  for (const cote of [-1, 1]) {
+    ctx.fillStyle = C.graphite;
+    rond(cote * 0.44 * u - 0.08 * u, -1.1 * u, 0.16 * u, 2.3 * u, 0.08 * u); ctx.fill();
+    ctx.fillStyle = C.rouge;
+    rond(cote * 0.44 * u - 0.08 * u, 0.94 * u, 0.16 * u, 0.26 * u, 0.08 * u); ctx.fill();
+  }
+  ctx.translate(-incline * 0.12 * u, 0);
+  ctx.fillStyle = '#E3E9F1'; ctx.strokeStyle = 'rgba(22, 24, 27, 0.22)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(0, -0.32 * u, (groupe ? 0.44 : 0.5) * u, 0, 6.283); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  if (avecEcharpe) {
+    const p = scene();
+    ctx.strokeStyle = C.rouge; ctx.lineWidth = Math.max(2.5, u * 0.16); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    for (const e of echarpe) ctx.lineTo(sx + (e.x - p.x) * u, sy + (e.y - p.y) * u);
+    ctx.stroke();
+  }
+  ctx.save();
+  ctx.globalAlpha = opacite;
+  ctx.translate(sx, sy);
+  ctx.rotate(-cap);
+  ctx.translate(-incline * 0.2 * u, groupe ? 0.12 * u : 0);
+  // les antennes, couchées vers l'arrière par la vitesse
+  ctx.strokeStyle = C.graphite; ctx.fillStyle = C.graphite; ctx.lineWidth = Math.max(1.5, u * 0.075); ctx.lineCap = 'round';
+  for (const cote of [-1, 1]) {
+    const tx = cote * (groupe ? 0.6 : 0.8) * u, ty = (groupe ? -0.78 : -0.52) * u;
+    ctx.beginPath(); ctx.moveTo(cote * 0.46 * u, -0.02 * u); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.beginPath(); ctx.arc(tx, ty, Math.max(1.5, u * 0.1), 0, 6.283); ctx.fill();
+  }
+  // les yeux dépassent à l'avant de la tête, entre les skis : on voit où il regarde
+  for (const cote of [-1, 1]) { ctx.beginPath(); ctx.arc(cote * 0.2 * u, 0.44 * u, 0.17 * u, 0, 6.283); ctx.fill(); }
+  ctx.fillStyle = '#6B7482';
+  for (const cote of [-1, 1]) { ctx.beginPath(); ctx.arc(cote * 0.2 * u - 0.05 * u, 0.52 * u, 0.04 * u, 0, 6.283); ctx.fill(); }
+  const coque = ctx.createLinearGradient(0, -0.26 * u, 0, 0.46 * u);
+  coque.addColorStop(0, '#FFFFFF'); coque.addColorStop(1, '#E4EAF2');
+  ctx.fillStyle = coque; ctx.strokeStyle = 'rgba(22, 24, 27, 0.24)'; ctx.lineWidth = 1;
+  rond(-0.68 * u, -0.26 * u, 1.36 * u, 0.72 * u, 0.36 * u); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function dessiner() {
+  if (!largeur) return;
+  const p = scene();
+  const tremble = secousse > 0 && !SANS_ELAN;
+  ctx.save();
+  if (tremble) ctx.translate((Math.random() - 0.5) * secousse, (Math.random() - 0.5) * secousse);
+  // La neige
+  ctx.fillStyle = C.neige;
+  ctx.fillRect(-20, -20, largeur + 40, hauteur + 40);
+  const s = TUILE_M * ech / 256;
+  motif.setTransform(new DOMMatrix([s, 0, 0, s, versEcranX(0), versEcranY(0)]));
+  ctx.fillStyle = motif;
+  ctx.fillRect(-20, -20, largeur + 40, hauteur + 40);
+  ctx.fillStyle = soleil; ctx.fillRect(-20, -20, largeur + 40, hauteur + 40);
+  ctx.fillStyle = froid; ctx.fillRect(-20, -20, largeur + 40, hauteur + 40);
+  const yHaut = cam.y - hauteur * ancre / ech - 14, yBas = cam.y + hauteur * (1 - ancre) / ech + 8;
+  // Ce qui est sur la neige : les traces, les lignes, la foule
+  dessinerTraces(p, yHaut, yBas);
+  dessinerLigne(PISTE.arrivee, 11);
+  dessinerFoule(p, yHaut, yBas);
+  // Les ombres des sapins, longues et douces
+  const arbres = PISTE.arbres;
+  let premier = 0, fin = arbres.length;
+  while (premier < fin) { const m = (premier + fin) >> 1; if (arbres[m].y < yHaut) premier = m + 1; else fin = m; }
+  const bordG = cam.x - largeur / 2 / ech - 9, bordD = cam.x + largeur / 2 / ech + 6;
+  for (let i = premier; i < arbres.length && arbres[i].y <= yBas; i++) {
+    const a = arbres[i];
+    if (a.x < bordG || a.x > bordD) continue;
+    const bx = versEcranX(a.x), by = versEcranY(a.y), pied = a.r * 1.3 * ech;
+    ombrePortee(bx, by, a.h * 1.5 * ech, a.r * 1.7 * ech);
+    ctx.drawImage(OMBRE, bx - pied * 0.9, by - pied * 0.9, 2 * pied, 2 * pied);
+  }
+  // La neige qui gicle
+  for (const q of particules) {
+    const a = 1 - q.age / q.vie, sx = versEcranX(q.x), sy = versEcranY(q.y), r = q.r * ech;
+    ctx.globalAlpha = a * 0.3;
+    ctx.fillStyle = C.glace;
+    ctx.beginPath(); ctx.arc(sx + r * 0.5, sy + r * 0.4, r, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = a * 0.95;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  dessinerPortes(p, yHaut, yBas);
+  // Le fantôme du record, puis le skieur
+  if (fantome && p === partie && !p.arrive) {
+    const i = Math.min(Math.floor(p.temps / 0.1), fantome.length / 3 - 1);
+    if (i >= 0) dessinerSkieur(versEcranX(fantome[i * 3]), versEcranY(fantome[i * 3 + 1]), fantome[i * 3 + 2], 0, false, 0.3, false);
+  }
+  const sx = versEcranX(p.x), sy = versEcranY(p.y);
+  ombrePortee(sx, sy, es * 1.9, es * 1.5);
+  if (p === partie && p.schussPret > 0 && !p.arrive) {
+    ctx.strokeStyle = 'rgba(22, 24, 27, 0.16)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(sx, sy, es * 1.35, -Math.PI / 2, -Math.PI / 2 + 6.283 * (1 - p.schussPret / SCHUSS_REPOS)); ctx.stroke();
+  }
+  dessinerSkieur(sx, sy, p.cap, penche, p.schuss > 0, p.sonne > 0 ? 0.55 + 0.45 * Math.sin(horloge * 40) : 1, true);
+  // Les sapins, étage par étage : chaque étage penche un peu plus vers le bord
+  for (let i = premier; i < arbres.length && arbres[i].y <= yBas; i++) {
+    const a = arbres[i];
+    if (a.x < bordG || a.x > bordD) continue;
+    const bx = versEcranX(a.x), by = versEcranY(a.y);
+    for (let j = 0; j < 4; j++) {
+      const [ex, ey] = eleve(bx, by, a.h * (0.2 + 0.24 * j)), r = a.r * (1 - 0.21 * j) * ech;
+      ctx.drawImage(ETAGES[a.tour * 4 + j], ex - r, ey - r, 2 * r, 2 * r);
+    }
+  }
+  dessinerBanderole(-2.2, 3.4, 3.2, 'DÉPART');
+  dessinerBanderole(PISTE.arrivee, 11.6, 7, 'ARRIVÉE');
+  ctx.restore();
+  // La vitesse : des filets de vent sur les côtés
+  const elan = lisse((p.v - 13) / 10);
+  if (elan > 0.01 && mode !== 'pause') {
+    ctx.strokeStyle = 'rgba(104, 136, 190, ' + (0.2 * elan).toFixed(3) + ')';
+    ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const f of filets) {
+      const l = f.l * (0.3 + p.v / 30);
+      ctx.moveTo(f.x * largeur, f.y * hauteur);
+      ctx.lineTo(f.x * largeur + Math.sin(p.cap) * l, f.y * hauteur + Math.cos(p.cap) * l);
+    }
+    ctx.stroke();
+  }
+}
+
+// ===== La boucle : une logique à pas fixes =====
+let dernier = 0, reste = 0;
+function boucle(t) {
+  const dt = Math.min(0.1, (t - dernier) / 1000 || 0);
+  dernier = t;
+  if (mode === 'decompte') {
+    const avant = Math.ceil(depart);
+    depart -= dt;
+    if (depart <= 0) { passer('jeu'); $('decompte').hidden = true; note(880, 0.3, { forme: 'triangle', volume: 0.18 }); }
+    else if (Math.ceil(depart) !== avant) battre();
+  }
+  reste += dt;
+  while (reste >= PAS) {
+    if (mode === 'jeu' || (mode === 'fin' && partie.arret < 3)) {
+      pas(partie, PISTE, lireEntree(), PAS);
+      veutSchuss = false;
+    } else if (mode === 'decompte') {
+      // Dans le portillon, le skieur tourne déjà comme Reachy : on voit le lien avant de partir.
+      partie.cible = consigne(partie.cible, lireEntree(), PAS);
+      tourner(partie, PAS);
+    } else if (mode === 'accueil') {
+      pas(demo, PISTE, PILOTE_DEMO(demo, PISTE), PAS);
+      if (demo.arret > 2.6) { demo = nouvellePartie(); rafraichir(demo); }
+    }
+    reste -= PAS;
+  }
+  if (mode === 'accueil') demo.faits.length = 0;
+  while (partie.faits.length) reagir(partie.faits.shift());
+  animer(dt);
+  dessiner();
+  requestAnimationFrame(boucle);
+}
+
+// ===== Les entrées =====
+function surTouche(e, enfoncee) {
+  const k = e.key;
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k)) e.preventDefault();
+  if (k === 'ArrowLeft') clavier.gauche = enfoncee;
+  if (k === 'ArrowRight') clavier.droite = enfoncee;
+  if (!enfoncee || e.repeat) return;
+  if ((k === 'Enter' || k === ' ') && (mode === 'accueil' || (mode === 'fin' && !$('fin').hidden))) lancer();
+  else if ((k === 'Enter' || k === ' ') && mode === 'pause') basculerPause();
+  else if ((k === 'ArrowUp' || k === ' ') && mode === 'jeu') veutSchuss = true;
+  if (k === 'p' || k === 'P') basculerPause();
+  if ((k === 'r' || k === 'R') && mode !== 'accueil' && mode !== 'place') lancer();
+  if (k === 'm' || k === 'M') basculerSon();
+}
+/** Un doigt (ou la souris) posé sur la piste : le skieur prend le cap qui y mène. */
+function viserDoigt(e) {
+  const cadre = toile.getBoundingClientRect();
+  doigt.cap = capVers(e.clientX - cadre.left - versEcranX(partie.x), e.clientY - cadre.top - versEcranY(partie.y));
+}
+toile.addEventListener('pointerdown', (e) => {
+  if (mode !== 'jeu' && mode !== 'decompte') return;
+  doigt.actif = true;
+  viserDoigt(e);
+  try { toile.setPointerCapture(e.pointerId); } catch (erreur) { /* un pointeur déjà parti : rien à retenir */ }
+});
+toile.addEventListener('pointermove', (e) => { if (doigt.actif) viserDoigt(e); });
+for (const fin of ['pointerup', 'pointercancel']) toile.addEventListener(fin, () => { doigt.actif = false; });
+/** Un bouton qu'on tient : il vaut la flèche du clavier. */
+function tenir(id, cote) {
+  const b = $(id);
+  b.addEventListener('pointerdown', (e) => { e.preventDefault(); clavier[cote] = true; });
+  for (const fin of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(fin, () => { clavier[cote] = false; });
+}
+tenir('btn-gauche', 'gauche');
+tenir('btn-droite', 'droite');
+window.addEventListener('keydown', (e) => surTouche(e, true));
+window.addEventListener('keyup', (e) => surTouche(e, false));
+window.addEventListener('blur', () => { clavier.gauche = clavier.droite = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'jeu') basculerPause(); });
+$('jouer').addEventListener('click', lancer);
+$('rejouer').addEventListener('click', lancer);
+$('recommencer').addEventListener('click', lancer);
+$('reprendre').addEventListener('click', basculerPause);
+$('btn-pause').addEventListener('click', basculerPause);
+$('btn-son').addEventListener('click', basculerSon);
+$('btn-schuss').addEventListener('click', () => { if (mode === 'jeu') veutSchuss = true; });
+$('sans-robot').addEventListener('click', () => { if (mode === 'place' && attente) attente.sans(); });
+
+for (let i = 0; i < 18; i++) filets.push({ x: bordAuHasard(), y: Math.random(), l: 18 + Math.random() * 30 });
+reachy.toile(toile, { dprMax: DPR_MAX, surTaille: ajuster });
+rafraichir(demo);
+reachy.pastilles({ robot: $('etat-robot'), manette: $('etat-manette'), tenue: TENUE });
+requestAnimationFrame(boucle);
+
+// ===== Autotest : les vraies fonctions du jeu, sur des situations connues =====
+window.__selfTest = () => {
+  const DEG = 180 / Math.PI, rien = { gauche: false, droite: false, doigt: null, manette: null, schuss: false };
+  const porte = PISTE.portes[3];
+  const fautive = nouvellePartie();
+  franchir(fautive, porte, porte.x + porte.l / 2 + 1);
+  const propre = nouvellePartie();
+  franchir(propre, porte, porte.x);
+  const pilotee = simuler(pilote(0.3, true), PISTE, 120);
+  const prudente = simuler(pilote(0, false), PISTE, 120);
+  const droite = simuler(TOUT_DROIT, PISTE, 120);
+  const sapin = PISTE.arbres[40];
+  const horsPage = reachy.message('look', regardVers(5000, -900, 1000, 500));
+  // La partie lit la manette dans la boîte à outils : 30° du corps de Reachy, le temps d'une lecture.
+  const tenue = reachy.etat.manette, corps = reachy.pad.corps;
+  reachy.etat.manette = 'oui'; reachy.pad.corps = 30;
+  const capLu = lireEntree().manette * DEG;
+  reachy.etat.manette = tenue; reachy.pad.corps = corps;
+  const dansUnePorte = PISTE.arbres.filter((a) => PISTE.portes.some((g) => Math.abs(a.y - g.y) < 3 && Math.abs(a.x - g.x) < g.l / 2 + 2)).length;
+  return [
+    ['Cap\u00a0: 30° du corps de Reachy = 30° du skieur', capManette(30) * DEG, 30, 1e-9],
+    ['Cap\u00a0: à gauche de la page, négatif', capManette(-45) * DEG, -45, 1e-9],
+    ['Cap\u00a0: borné à 80°, jamais vers le haut', capManette(140) * DEG, 80, 1e-9],
+    ['Consigne\u00a0: la flèche droite tourne à vitesse fixe', consigne(0, { ...rien, droite: true }, 0.25), ROT_CLAVIER * 0.25, 1e-9],
+    ['Consigne\u00a0: la manette commande quand on ne touche à rien', consigne(0.2, { ...rien, manette: -0.4 }, PAS), -0.4, 0],
+    ['Consigne\u00a0: personne ne tourne, le cap tient', consigne(0.2, rien, PAS), 0.2, 0],
+    ['Doigt\u00a0: en bas à droite du skieur, 45°', capVers(120, 120) * DEG, 45, 1e-9],
+    ['Porte\u00a0: au milieu, franchie', +porteFranchie(porte, porte.x), 1, 0],
+    ['Porte\u00a0: un mètre dehors, manquée', +porteFranchie(porte, porte.x + porte.l / 2 + 1), 0, 0],
+    ['Porte manquée\u00a0: ' + PENALITE + '\u00a0s de pénalité', fautive.penalites, PENALITE, 0],
+    ['Porte franchie\u00a0: comptée, sans pénalité', propre.passees - propre.penalites, 1, 0],
+    ['Pente\u00a0: la ligne de pente tire plus que la traversée', acceleration(10, 0, 0, false) - acceleration(10, 1, 0, false), PENTE * (1 - Math.cos(1)), 1e-9],
+    ['Carres\u00a0: tourner à 2 rad/s freine', acceleration(15, 0, 0, false) - acceleration(15, 0, 2, false), CARRE * 2 * 15, 1e-9],
+    ['Schuss\u00a0: moins de frein à 20 m/s', acceleration(20, 0, 0, true) - acceleration(20, 0, 0, false), (1 - SCHUSS_AIR) * (FROTTEMENT + AIR * 400), 1e-9],
+    ['Médailles\u00a0: ' + OR + ' s, c’est l’or', rang(OR), 3, 0],
+    ['Médailles\u00a0: un centième de plus, l’argent', rang(OR + 0.01), 2, 0],
+    ['Médailles\u00a0: au-delà du bronze, rien', rang(BRONZE + 0.01), 0, 0],
+    ['Piste\u00a0: ' + NB_PORTES + ' portes', PISTE.portes.length, NB_PORTES, 0],
+    ['Piste\u00a0: la même à chaque tracé', tracer(GRAINE).portes[17].x, PISTE.portes[17].x, 0],
+    ['Piste\u00a0: aucun sapin dans une porte', dansUnePorte, 0, 0],
+    ['Sapin\u00a0: en plein dedans, touché', +(sapinTouche(PISTE, sapin.x, sapin.y) !== null), 1, 0],
+    ['Sapin\u00a0: sur l’axe de la piste, rien', +(sapinTouche(PISTE, axe(200), 200) !== null), 0, 0],
+    ['Pilote\u00a0: il passe la ligne', pilotee.fini, 1, 0],
+    ['Pilote\u00a0: toutes les portes', pilotee.portes, NB_PORTES, 0],
+    ['Pilote\u00a0: un temps de descente plausible', pilotee.temps, 34, 8],
+    ['Pilote\u00a0: aucun calcul fou', pilotee.sain * prudente.sain * droite.sain, 1, 0],
+    ['Pilote prudent\u00a0: toutes les portes aussi, moins vite', prudente.portes + (prudente.temps > pilotee.temps ? 1 : 0), NB_PORTES + 1, 0],
+    ['Vitesse\u00a0: jamais au-delà de 120 km/h', Math.max(pilotee.vmax, droite.vmax) * 3.6, 75, 45],
+    ['Tout droit\u00a0: des portes manquées, ' + PENALITE + ' s chacune', droite.penalites, droite.manquees * PENALITE, 0],
+    ['Tout droit\u00a0: il en manque', +(droite.manquees > 0), 1, 0],
+    ['Regard\u00a0: le bord droit de la page est à 30°', regardVers(1000, 250, 1000, 500).yaw, 30, 1e-9],
+    ['Regard\u00a0: le haut de la page est à 20°', regardVers(500, 0, 1000, 500).pitch, 20, 1e-9],
+    ['Robot\u00a0: une émotion inconnue est refusée', +(reachy.message('emotion', { name: 'x' }) === null), 1, 0],
+    ['Robot\u00a0: rendre la manette, profil nul', +(reachy.message('manette', { profile: null }).profile === null), 1, 0],
+    ['Robot\u00a0: un regard hors de la page est ramené à son coin', horsPage.yaw - horsPage.pitch, 10, 0],
+    ['Manette\u00a0: le cap est celui du corps que la boîte à outils rapporte', capLu, 30, 1e-9],
+    ['Chrono\u00a0: 38,416 s s’écrit 38,42', parseFloat(formaterTemps(38.416).replace(',', '.')), 38.42, 1e-9],
+  ];
+};
+</script>
+</body>
+</html>

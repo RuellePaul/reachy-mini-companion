@@ -1,0 +1,31 @@
+// Un conte pour enfants à quatre voix.
+@NARRATEUR (Sadaltager) : conteur pour enfants, très expressif, qui fait durer le suspense
+@LE DRAGON (Algenib) : énorme dragon enrhumé, voix très grave et nasillarde, il renifle, bougon mais gentil
+@LE CHEVALIER (Alnilam) : chevalier fanfaron, voix héroïque exagérée, qui se croit dans un film
+@LA PRINCESSE (Autonoe) : princesse pragmatique, vive, un brin moqueuse
+
+Tout en haut d'une montagne, dans un château de pierre noire, vivait un dragon terrifiant. [fear1]
+
+Du moins, c'est ce que tout le monde croyait.
+
+LE DRAGON (en reniflant) : <éternue> Oh là là… [sad2] Quelle misère. Trois jours que je ne crache plus de feu. Seulement des bulles. <soupir>
+
+Un beau matin, un chevalier arriva au pied du château, l'épée à la main.
+
+LE CHEVALIER (en criant, très fier de lui) : [proud1] Dragon ! Je suis Gontran le Magnifique, et je viens délivrer la princesse !
+
+LE DRAGON (agacé) : [irritated1] Quelle princesse ? Il n'y a pas de princesse ici. Il y a moi, un mouchoir, et une tisane.
+
+LA PRINCESSE : [secoue la tête] Si, si, je suis là ! Mais je ne suis pas prisonnière. Je suis médecin. Je soigne son rhume.
+
+LE CHEVALIER (déconfit, tout petit) : [surprised1] Ah. Bon. Euh… Je peux aider ?
+
+LA PRINCESSE (amusée) : Oui. Allez chercher du miel. Beaucoup de miel. <rire>
+
+[laughing1] Et c'est ainsi que Gontran le Magnifique devint Gontran le Livreur de Miel.
+
+LE DRAGON (soulagé, la voix qui revient) : Merci, les amis. <éternue> Oh… [amazed1] regardez !
+
+Et du nez du dragon sortit, enfin, une toute petite flamme. Juste assez pour allumer les bougies d'un gâteau. [enthusiastic1]
+
+Fin.

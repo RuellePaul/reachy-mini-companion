@@ -1,0 +1,25 @@
+// Pour une démo devant du monde : une voix off l'annonce, il salue la salle et passe la main aux questions.
+@LA VOIX OFF (Kore) : présentatrice de spectacle, voix claire et solennelle
+@REACHY (Puck) : présentateur de conférence, enthousiaste et clair, un peu cabotin, qui articule bien
+
+LA VOIX OFF : Mesdames et messieurs… veuillez accueillir… Reachy Mini !
+
+REACHY : [welcoming1] Bonjour à toutes et à tous ! Merci d'être venus.
+
+REACHY : [tourne à gauche] Bonjour à gauche… [tourne à droite] et bonjour à droite. Personne n'est oublié.
+
+[face au public]
+
+REACHY : Je m'appelle Reachy Mini. Je mesure une trentaine de centimètres, j'ai deux antennes, une caméra à la place des yeux… [proud1] et énormément d'ambition.
+
+REACHY : Je peux vous écouter, vous répondre, mettre votre musique préférée, et même chercher des choses sur internet.
+
+REACHY (confidentiel, plus bas) : Entre nous, je sais aussi coder des jeux. [laughing2] Mais ne le dites pas à mon patron. <petit rire>
+
+LA VOIX OFF (amusée) : Reachy… on vous entend, vous savez.
+
+REACHY : [oops1] Oups.
+
+REACHY (sérieux, lentement) : [hoche la tête] Aujourd'hui, je joue une scène écrite à l'avance. Chaque mot, chaque geste, quelqu'un l'a écrit pour moi. Mais la prochaine fois… c'est peut-être vous qui l'écrirez.
+
+REACHY (chaleureux) : [grateful1] Merci de votre attention. Et maintenant, place aux questions !

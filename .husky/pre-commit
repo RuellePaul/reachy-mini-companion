@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+# The project's pinned ruff; the one on PATH can be any version.
+RUFF="$ROOT/.venv/bin/ruff"
+[ -x "$RUFF" ] || RUFF=ruff
+
+# 1. Fix the staged files (ruff for Python, prettier + eslint for the frontend) with the lint-staged of
+#    package-lock.json, never one npx would fetch. --no-stash: lint-staged must never touch the stash list (it holds
+#    work that is not ours to move).
+if [ -x node_modules/.bin/lint-staged ]; then
+    node_modules/.bin/lint-staged --no-stash
+else
+    echo "▸ lint-staged is not installed (npm ci at the repo root): the staged files are checked, not fixed"
+fi
+
+# 2. What is committed, not the working tree: the checks of make lint on a copy of the index (git's
+#    GIT_INDEX_FILE when the commit names paths), the frontend's node_modules lent to it.
+TREE="$(mktemp -d)"
+trap 'rm -rf "$TREE"' EXIT
+git checkout-index --all --prefix="$TREE/"
+[ ! -d frontend/node_modules ] || ln -s "$ROOT/frontend/node_modules" "$TREE/frontend/node_modules"
+cd "$TREE"
+bash scripts/lint.sh "$RUFF" "$ROOT/.venv/bin/python"

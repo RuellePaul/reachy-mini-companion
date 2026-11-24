@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="reachy-quiet" content="oui">
+<title>Marionnette</title>
+<style>
+:root {
+  /* Les couleurs du tableau de bord (--page, --encre, --ecoute…) viennent de la boîte à outils ; celles-ci sont à la page. */
+  --porcelaine: #EBEDF0; --graphite: #16181B;
+  --accent: var(--attention);
+  --verre: rgba(29, 32, 36, 0.72);
+  --police: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--creux); color: var(--encre); font-family: var(--police); -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+button:focus-visible { outline: 2px solid var(--encre); outline-offset: 3px; }
+kbd { font: 600 11px/18px ui-monospace, "SF Mono", Menlo, monospace; display: inline-block; min-width: 20px; padding: 0 5px; text-align: center; border-radius: 5px; color: var(--encre-2); background: var(--creux); border: 1px solid var(--trait); }
+
+#scene { position: fixed; inset: 0; overflow: hidden; }
+#toile { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* Le bandeau du haut : le rythme, et où on en est. */
+.hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: clamp(10px, 2.2vmin, 18px); pointer-events: none; }
+.jauge { display: flex; flex-direction: column; gap: 2px; padding: 7px 14px 8px; border-radius: 14px; background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.jauge:last-child { align-items: flex-end; }
+.jauge small { font-size: 11px; font-weight: 600; color: var(--encre-3); }
+.jauge b { font-size: clamp(17px, 3.4vmin, 24px); font-weight: 740; line-height: 1.05; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+
+/* À qui le tour : toi, puis lui. */
+#phase { position: absolute; left: 50%; top: clamp(12px, 2.4vmin, 22px); transform: translateX(-50%); display: flex; align-items: center; gap: 9px; max-width: calc(100% - 24px); padding: 9px 17px 10px 13px; border-radius: 999px; overflow: hidden; font-size: 15px; font-weight: 660; white-space: nowrap; text-overflow: ellipsis; background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); pointer-events: none; }
+#phase i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--point, var(--encre-3)); }
+#phase::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: calc(var(--avance, 0) * 100%); background: var(--point, var(--encre-3)); }
+#phase[data-phase="compte"], #phase[data-phase="lache"] { --point: var(--attention); }
+#phase[data-phase="enregistre"] { --point: var(--faute); }
+#phase[data-phase="enregistre"] i { animation: clignote 1s ease-in-out infinite; }
+#phase[data-phase="rejeu"] { --point: var(--ecoute); }
+@keyframes clignote { 50% { opacity: 0.25; } }
+
+/* En bas : l'état du robot et de la manette, puis les boutons du moment. */
+.pied { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; padding: clamp(10px, 2.2vmin, 18px); pointer-events: none; }
+.etats { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pastille { display: inline-flex; align-items: center; gap: 7px; width: fit-content; max-width: 100%; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 560; color: var(--encre-2); background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); white-space: nowrap; }
+.pastille::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--point, var(--encre-3)); }
+.pastille[data-etat="oui"] { --point: var(--ecoute); color: var(--encre); }
+.pastille[data-etat="attente"] { --point: var(--attention); }
+.pastille[data-etat="dort"] { --point: var(--sommeil); }
+.touches { display: flex; gap: 8px; pointer-events: auto; }
+.touche { min-width: 44px; height: 44px; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 620; color: var(--encre-2); background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); white-space: nowrap; }
+.touche:hover { color: var(--encre); border-color: var(--trait-fort); }
+.touche:active { transform: scale(0.96); }
+.touche.forte, .touche[aria-pressed="true"] { color: var(--encre); border-color: var(--trait-fort); }
+.touche[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 16%, var(--plaque)); border-color: var(--accent); }
+@media (max-width: 719px) {
+  #phase { top: 12px; font-size: 13px; padding: 7px 14px 8px 11px; }
+  .hud { display: none; }
+  .touche { padding: 0 11px; font-size: 13px; }
+}
+
+/* Les écrans : accueil, mise en place, fin. */
+.ecran { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 2.4vmin, 20px); padding: 20px; text-align: center; background: color-mix(in srgb, var(--creux) 72%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: apparait 0.35s ease both; }
+@keyframes apparait { from { opacity: 0; } }
+.ecran h1 { font-size: clamp(38px, 9.5vmin, 80px); font-weight: 800; line-height: 0.95; letter-spacing: -0.035em; }
+.ecran h2 { font-size: clamp(22px, 5vmin, 40px); font-weight: 760; letter-spacing: -0.02em; line-height: 1.05; }
+.ecran p { max-width: 33em; font-size: clamp(13px, 2.3vmin, 17px); line-height: 1.45; color: var(--encre-2); }
+.ecran p b { color: var(--encre); font-weight: 620; }
+.ecran .sur { font-size: 12px; font-weight: 640; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.bouton { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 28px; border-radius: 999px; font-size: 18px; font-weight: 700; color: var(--graphite); background: var(--porcelaine); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8); transition: transform 0.12s ease, background 0.12s ease; }
+.bouton:hover { background: #FFFFFF; transform: translateY(-1px); }
+.bouton:active { transform: scale(0.97); }
+.bouton.discret { min-height: 40px; padding: 0 18px; font-size: 14px; font-weight: 620; color: var(--encre-2); background: transparent; border: 1px solid var(--trait-fort); box-shadow: none; }
+.bouton.discret:hover { color: var(--encre); background: rgba(235, 237, 240, 0.06); }
+.rang { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+.aides { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; font-size: 12px; color: var(--encre-3); }
+.aides span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* L'accueil laisse la scène au jumeau : le texte tient en bas, sur un voile. */
+#accueil { justify-content: flex-end; padding-bottom: 92px; background: linear-gradient(to bottom, transparent 30%, color-mix(in srgb, var(--creux) 90%, transparent) 52%); backdrop-filter: none; -webkit-backdrop-filter: none; }
+#accueil-contenu { display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.9vmin, 16px); }
+.rythmes { display: flex; gap: 8px; }
+.rythme { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 98px; padding: 8px 14px 9px; border-radius: 13px; text-align: left; background: var(--verre); border: 1px solid var(--trait); transition: border-color 0.15s ease, background 0.15s ease; }
+.rythme b { font-size: 15px; font-weight: 700; }
+.rythme small { font-size: 11px; font-weight: 560; color: var(--encre-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rythme:hover { border-color: var(--trait-fort); }
+.rythme[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, var(--plaque)); }
+.rythme[aria-checked="true"] small { color: var(--accent); }
+.gestes { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px clamp(8px, 2.4vmin, 22px); }
+.geste { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 560; color: var(--encre-3); }
+.geste svg { width: 54px; height: 40px; overflow: visible; }
+.coque { fill: var(--porcelaine); }
+.oeil { fill: var(--graphite); }
+.antenne { stroke: var(--encre-2); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.bout { fill: var(--encre-2); }
+.socle { fill: #C9CED6; }
+.fantome { opacity: 0.22; }
+.fleche { stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+/* La fin tient au-dessus de la partition : elle reste lisible, c'est la preuve. */
+#fin { bottom: auto; justify-content: center; gap: clamp(6px, 1.6vmin, 14px); padding: 44px 16px 8px; background: color-mix(in srgb, var(--creux) 64%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#fin .bouton { min-height: 44px; padding: 0 22px; font-size: 16px; }
+
+#decompte { position: absolute; inset: 0 0 auto 0; display: grid; place-items: center; padding-left: 46%; font-size: clamp(72px, 20vmin, 160px); font-weight: 800; letter-spacing: -0.05em; color: var(--porcelaine); pointer-events: none; text-shadow: 0 10px 60px rgba(0, 0, 0, 0.6); }
+#decompte span { animation: bat var(--temps, 0.6s) ease both; }
+@keyframes bat { from { opacity: 0; transform: scale(1.4); } 25% { opacity: 1; transform: scale(1); } 70% { opacity: 1; } to { opacity: 0; transform: scale(0.88); } }
+#annonce { position: absolute; z-index: 4; left: 50%; top: 68px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px); padding: 8px 16px; border-radius: 16px; font-size: 14px; font-weight: 620; line-height: 1.35; text-align: center; background: var(--verre); border: 1px solid var(--trait); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+#annonce.vu { opacity: 1; }
+@media (max-width: 719px) { #annonce { top: 52px; font-size: 13px; padding: 6px 13px; } #decompte { padding-left: 58%; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+@media (max-height: 660px) { #accueil .gestes, #accueil .aides { display: none; } }
+@media (max-width: 420px) { .rythmes { gap: 6px; } .rythme { min-width: 0; padding: 7px 10px 8px; } .rythme small { font-size: 10px; } }
+</style>
+</head>
+<body>
+<main id="scene">
+  <canvas id="toile"></canvas>
+
+  <header class="hud" id="hud" hidden>
+    <div class="jauge"><small>Rythme</small><b id="hud-rythme">Balade</b></div>
+    <div class="jauge"><small id="hud-quoi">Temps</small><b id="hud-compte">–</b></div>
+  </header>
+
+  <div id="phase" hidden><i></i><span id="phase-texte"></span></div>
+  <div id="annonce"></div>
+  <div id="decompte" hidden></div>
+
+  <footer class="pied">
+    <div class="etats">
+      <span class="pastille" id="etat-robot">Robot&nbsp;: en attente</span>
+      <span class="pastille" id="etat-manette">Manette&nbsp;: non</span>
+    </div>
+    <nav class="touches">
+      <button class="touche forte" id="btn-arret" hidden>Arrêter</button>
+      <button class="touche" id="btn-mode" aria-pressed="false" hidden>Déplacer</button>
+      <button class="touche" id="btn-son" aria-label="Couper le son">Son</button>
+    </nav>
+  </footer>
+
+  <section class="ecran" id="accueil">
+    <div id="accueil-contenu">
+      <h1>Marionnette</h1>
+      <p>Prends la tête de Reachy à deux mains et fais-lui faire <b>une mesure</b>&nbsp;: tourne-la, lève-la, penche-la, déplace-la d’une épaule à l’autre. <b>Lâche-le&nbsp;: il refait exactement ton geste.</b></p>
+      <div class="rythmes" role="radiogroup" aria-label="Rythme">
+        <button class="rythme" role="radio" aria-checked="false" data-rythme="berceuse"><b>Berceuse</b><small>3,3 s la mesure</small></button>
+        <button class="rythme" role="radio" aria-checked="true" data-rythme="balade"><b>Balade</b><small>2,5 s la mesure</small></button>
+        <button class="rythme" role="radio" aria-checked="false" data-rythme="fete"><b>Fête</b><small>2 s la mesure</small></button>
+      </div>
+      <button class="bouton" id="jouer">Jouer</button>
+      <div class="gestes" aria-hidden="true">
+        <svg width="0" height="0" style="position:absolute"><symbol id="tete" viewBox="0 0 54 38"><path class="antenne" d="M20 13 L17 4"/><path class="antenne" d="M34 13 L37 4"/><circle class="bout" cx="17" cy="4" r="1.700"/><circle class="bout" cx="37" cy="4" r="1.700"/><rect class="coque" x="9" y="12" width="36" height="17" rx="8.500"/><circle class="oeil" cx="20" cy="20.500" r="4.500"/><circle class="oeil" cx="34" cy="20.500" r="4.500"/><rect class="oeil" x="20" y="19.500" width="14" height="2"/></symbol></svg>
+        <div class="geste"><svg viewBox="0 0 54 40"><use href="#tete" width="54" height="38"/><path class="fleche" d="M11 34 A16 4 0 0 0 43 34 M39 31 L43 34 L39 38"/></svg>Tourne</div>
+        <div class="geste"><svg viewBox="0 0 54 40"><use href="#tete" x="-4" y="2" width="54" height="38"/><path class="fleche" d="M49 33 V9 M46 13 L49 9 L52 13"/></svg>Lève</div>
+        <div class="geste"><svg viewBox="0 0 54 40"><g transform="rotate(-14 27 21)"><use href="#tete" width="54" height="38"/></g><path class="fleche" d="M10 36 Q27 41 44 34 M40 32 L44 34 L41 38"/></svg>Penche</div>
+        <div class="geste"><svg viewBox="0 0 54 40"><use class="fantome" href="#tete" x="-8" width="54" height="38"/><use href="#tete" x="8" width="54" height="38"/><path class="fleche" d="M8 36 H46 M12 33 L8 36 L12 39 M42 33 L46 36 L42 39"/></svg>Déplace</div>
+        <div class="geste"><svg viewBox="0 0 54 40"><path class="antenne" d="M20 13 L17 4"/><path class="antenne" d="M34 13 L41 6"/><circle class="bout" cx="17" cy="4" r="1.700"/><circle class="bout" cx="41" cy="6" r="1.700"/><rect class="coque" x="9" y="12" width="36" height="17" rx="8.500"/><circle class="oeil" cx="20" cy="20.500" r="4.500"/><circle class="oeil" cx="34" cy="20.500" r="4.500"/><rect class="oeil" x="20" y="19.500" width="14" height="2"/><path class="fleche" d="M36 1 Q42 0 46 5 M42 5 L46 5 L46 1"/></svg>Antennes</div>
+        <div class="geste"><svg viewBox="0 0 54 40"><use href="#tete" x="9" y="-2" width="36" height="25"/><rect class="socle" x="17" y="20" width="20" height="14" rx="6"/><path class="fleche" d="M9 30 A18 5 0 0 0 45 30 M41 27 L45 30 L41 34"/></svg>Base</div>
+      </div>
+      <div class="aides"><span><kbd>Entrée</kbd> jouer</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> rythme</span><span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd> tourner, lever</span><span><kbd>Maj</kbd> + flèches déplacer</span><span><kbd>Q</kbd><kbd>D</kbd> pencher</span><span><kbd>A</kbd><kbd>E</kbd> antennes</span><span><kbd>M</kbd> son</span></div>
+    </div>
+  </section>
+
+  <section class="ecran" id="accord" hidden>
+    <h2 id="accord-titre">Reachy se met en place…</h2>
+    <p id="accord-texte">Sa tête se baisse, puis elle est à toi&nbsp;: prends-la à deux mains, le décompte part tout seul.</p>
+    <button class="bouton discret" id="sans-robot">Dessiner le geste à la souris</button>
+  </section>
+
+  <section class="ecran" id="fin" hidden>
+    <span class="sur" id="fin-sur">Recopié</span>
+    <h2 id="fin-titre">Ta mesure</h2>
+    <p id="fin-detail"></p>
+    <div class="rang">
+      <button class="bouton" id="encore">Encore</button>
+      <button class="bouton discret" id="rejouer">Nouvelle danse</button>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+// ===== Réglages =====
+const PROFIL = 'tete';              // la manette demandée : sa tête et sa base, relâchées, se bougent à la main
+const TENUE = 'tu tiens sa tête';   // ce que dit la pastille de la manette quand elle marche
+const PAS = 1 / 120;                // pas fixe de la logique, en secondes
+const DPR_MAX = 2;
+
+// La mesure et son rejeu.
+const TEMPS_PAR_MESURE = 4;
+const REPRISES = 4;                 // le robot refait la mesure autant de fois, puis s'arrête
+const COUTURE_S = 0.4;              // entre deux tours, le robot revient en douceur à la première pose : le jumeau fait de même
+const RETARD_MOTEURS_MS = 150;      // les moteurs suivent leur consigne avec ce retard : le jumeau et le métronome les attendent
+const DECALAGE_PRISE_MS = 0;        // ajouté aux deux bornes de la prise, si le geste rejoué commence trop tôt ou trop tard
+const ATTENTE_REJEU_S = 20;         // sans nouvelle du robot après ce temps, le jumeau rejoue seul
+const GARDE_PADS_S = 1.5;           // enregistrement : les pads arrêtés ce temps après la mesure, on la clôt
+const GARDE_FIN_S = 3;              // rejeu : le robot muet ce temps après son dernier tour, on conclut
+const PRISE_MIN_S = 0.3;            // plus court, le robot n'a rien à rejouer
+const PAUSE_SEUL_S = 0.7;           // sans robot : le temps de lâcher la souris avant que le jumeau rejoue
+const SALUT = 'bow';                // son geste, à la toute fin, la mesure rejouée
+const RATE = 'Reachy n’a pas pu rejouer : le jumeau refait ton geste seul.';
+
+// La main sans robot : ce qu'on atteint à la souris, au doigt, au clavier.
+const LACET_MAIN = 28, TANGAGE_HAUT = 26, ROULIS_MAIN = 15, COTE_MAIN = 25, AVANT_MAIN = 20, HAUT_MAIN = 25, ANTENNE_MAIN = 9;
+const SENS_ROULIS = 1;              // 1 : un roulis positif penche le jumeau vers la gauche de l'écran ; -1 : vers la droite
+
+// Le son.
+const DELAI_SON = 0.06;             // secondes d'avance prises sur l'horloge audio : chaque son part à sa place exacte
+const RYTHMES = [                   // une mesure de quatre temps ; `croches` : ce qui sonne à chaque demi-temps
+  { cle: 'berceuse', nom: 'Berceuse', bpm: 72, croches: ['coup', '', 'balai', '', 'bois', '', 'balai', ''] },
+  { cle: 'balade', nom: 'Balade', bpm: 96, croches: ['coup', 'charley', 'claque', 'charley', 'coup', 'charley', 'claque', 'charley'] },
+  { cle: 'fete', nom: 'Fête', bpm: 120, croches: ['coup', 'charley', 'coup claque', 'charley', 'coup', 'charley', 'coup claque', 'charley'] },
+];
+
+// La partition : un ruban par valeur du pad. `echelle` : ce qui remplit le ruban.
+const VOIES = [
+  { cle: 'tourne', nom: 'Tourne', unite: '°', echelle: 30, couleur: reachy.couleurs.ecoute },
+  { cle: 'leve', nom: 'Lève', unite: '°', echelle: 26, couleur: reachy.couleurs.parle },
+  { cle: 'penche', nom: 'Penche', unite: '°', echelle: 20, couleur: reachy.couleurs.pense },
+  { cle: 'cote', nom: 'Côté', unite: ' mm', echelle: 30, couleur: reachy.couleurs.attention },
+  { cle: 'avant', nom: 'Avant', unite: ' mm', echelle: 30, couleur: reachy.couleurs.faute },
+  { cle: 'haut', nom: 'Haut', unite: ' mm', echelle: 40, couleur: reachy.couleurs.sommeil },
+  { cle: 'antD', autre: 'antG', nom: 'Antennes', unite: '°', echelle: 12, couleur: '#C9CED6' },
+  { cle: 'base', nom: 'Base', unite: '°', echelle: 45, couleur: reachy.couleurs['encre-2'] },
+];
+const GROUPES = [['Elle tourne', 0, 3], ['Elle se déplace', 3, 6], ['Antennes, base', 6, 8]];
+const CLES = ['tourne', 'leve', 'penche', 'cote', 'avant', 'haut', 'antG', 'antD', 'base'];   // antG, antD : à gauche et à droite de l'écran
+const POLICE = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+// ===== Utilitaires =====
+const $ = (id) => document.getElementById(id);
+const { borne, mele, lisse } = reachy;
+/** Appelle f(k) pour chaque multiple k × pas dans [de, a[. */
+function chaque(de, a, pas, f) { for (let k = Math.ceil(de / pas); k * pas < a; k++) f(k); }
+
+// ===== Le robot : par la boîte à outils (window.reachy, servie avant la page) =====
+/** Un pad devenu une pose : les six valeurs de la tête, les antennes (à gauche et à droite de l'écran), la base, et l'heure
+ *  de la mesure à l'horloge du robot. */
+function poseDuPad(pad) {
+  return {
+    t: pad.t, tourne: pad.lacet, leve: pad.tangage, penche: pad.roulis, cote: pad.cote, avant: pad.avant, haut: pad.haut,
+    antG: pad.antennes.gauche, antD: pad.antennes.droite, base: pad.corps,
+  };
+}
+
+// ===== La prise : ce que la main a fait pendant une mesure (pur : les tests appellent tout ceci) =====
+function poseNeutre() { const p = { t: 0 }; for (const k of CLES) p[k] = 0; return p; }
+function melePoses(a, b, x) { const p = { t: mele(a.t, b.t, x) }; for (const k of CLES) p[k] = mele(a[k], b[k], x); return p; }
+function nouvellePrise() { return { debut: null, fin: null, pads: [] }; }
+
+/** Garde un pad de la mesure en cours ; vrai une fois la mesure pleine. Les bornes sont l'heure du premier pad reçu et celle
+ *  du premier pad mesuré une mesure plus tard : l'horloge du robot (le `t` des pads), jamais celle de la page. */
+function noterPad(prise, p, mesureMs) {
+  if (prise.fin !== null) return true;
+  if (prise.debut === null) prise.debut = p.t;
+  prise.pads.push(p);
+  if (p.t - prise.debut < mesureMs) return false;
+  prise.fin = p.t;
+  return true;
+}
+function dureePrise(prise) { return prise.fin === null ? 0 : (prise.fin - prise.debut) / 1000; }
+
+/** La pose de la prise à `x` secondes de son début : entre deux pads, à proportion. */
+function lirePrise(prise, x) {
+  const pads = prise.pads, n = pads.length;
+  if (!n) return poseNeutre();
+  const t = prise.debut + x * 1000;
+  if (t <= pads[0].t) return pads[0];
+  if (t >= pads[n - 1].t) return pads[n - 1];
+  let a = 0, b = n - 1;
+  while (b - a > 1) { const m = (a + b) >> 1; if (pads[m].t <= t) a = m; else b = m; }
+  const ecart = pads[b].t - pads[a].t;
+  return melePoses(pads[a], pads[b], ecart > 0 ? (t - pads[a].t) / ecart : 0);
+}
+
+/** Ce que la page demande au robot : la prise entre ses deux heures, `tours` fois. */
+function demandeRejeu(prise, tours) {
+  return { start: prise.debut + DECALAGE_PRISE_MS, end: prise.fin + DECALAGE_PRISE_MS, loops: tours };
+}
+
+/** Où en est le rejeu, `u` secondes après que le geste a commencé : le tour, l'instant dans la prise, la couture
+ *  (0 à 1 : le retour à la première pose) ou null, et s'il est fini. Le robot enchaîne de même (0,4 s entre deux tours). */
+function instantRejeu(u, secondes, tours) {
+  const tour = secondes + COUTURE_S, total = tours * secondes + (tours - 1) * COUTURE_S;
+  if (u <= 0) return { tour: 0, x: 0, couture: null, fini: false };
+  if (u >= total) return { tour: tours - 1, x: secondes, couture: null, fini: true };
+  const n = Math.min(tours - 1, Math.floor(u / tour)), v = u - n * tour;
+  return v <= secondes ? { tour: n, x: v, couture: null, fini: false } : { tour: n, x: secondes, couture: lisse((v - secondes) / COUTURE_S), fini: false };
+}
+function dureeRejeu(secondes, tours) { return tours * secondes + (tours - 1) * COUTURE_S; }
+
+/** La pose du jumeau pendant le rejeu : la prise telle quelle, puis la couture. `secondes` est la durée d'un tour, dite par le robot. */
+function poseRejeu(prise, u, secondes, tours) {
+  const i = instantRejeu(u, secondes, tours), duree = dureePrise(prise);
+  if (i.couture === null) return lirePrise(prise, secondes > 0 ? i.x * duree / secondes : 0);
+  return melePoses(lirePrise(prise, duree), lirePrise(prise, 0), i.couture);
+}
+
+/** Le plus loin que chaque valeur est allée de son repos : ce que le geste a de plus ample. */
+function sommets(prise) {
+  const s = {};
+  for (const k of CLES) { s[k] = 0; for (const p of prise.pads) s[k] = Math.max(s[k], Math.abs(p[k])); }
+  return s;
+}
+
+/** Une valeur comme le cadran la montre : signe, entier, unité. `ample` : précédée de ± (le sommet d'un geste). */
+function formater(v, voie, ample) {
+  const n = Math.round(v);
+  return (!n ? '0' : ample ? '±' + Math.abs(n) : n > 0 ? '+' + n : '−' + -n) + voie.unite;
+}
+function secondesDites(s) { return s.toFixed(1).replace('.', ',') + ' s'; }
+
+/** Les deux valeurs les plus amples du geste, en mots. */
+function amplesDits(prise) {
+  const s = sommets(prise);
+  return VOIES.map((v) => ({ v, part: Math.max(s[v.cle], v.autre ? s[v.autre] : 0) / v.echelle, max: Math.max(s[v.cle], v.autre ? s[v.autre] : 0) }))
+    .filter((x) => x.max >= 1).sort((a, b) => b.part - a.part).slice(0, 2)
+    .map((x) => x.v.nom.toLowerCase() + ' ' + formater(x.max, x.v, true)).join(', ');
+}
+
+// ===== La séance : décompte, mesure, lâcher, rejeu, fin (pure : le temps, les pads et les sorties lui sont donnés) =====
+function nouvelleSeance(rythme, souris) {
+  return { rythme, souris, phase: 'compte', temps: 0, horloge: 0, prise: nouvellePrise(), rejeu: null, seul: souris, attente: 0, tour: 0, rate: false, arrete: false, complet: false };
+}
+function mesureMs(rythme) { return TEMPS_PAR_MESURE * 60000 / rythme.bpm; }
+
+function accompagner(rythme, croche, retard, sortie) {
+  for (const nom of rythme.croches[croche].split(' ')) if (nom) sortie.son(nom, retard, { fort: croche === 0 });
+}
+
+/** La mesure est pleine. Avec le robot : on lui rend son corps et on lui demande aussitôt de la rejouer (il attend d'être lâché).
+ *  Sans lui : le jumeau rejoue seul après un instant. */
+function clorePrise(s, sortie) {
+  s.phase = 'lache';
+  sortie.son('bois', 0, {});
+  if (s.souris) { s.seul = true; s.attente = PAUSE_SEUL_S; return; }
+  s.seul = false; s.attente = ATTENTE_REJEU_S;
+  sortie.rendre();
+  sortie.rejouer(demandeRejeu(s.prise, REPRISES));
+}
+
+/** Un pad du robot pendant la séance : seul l'enregistrement le garde. */
+function surPadSeance(s, pose, sortie) {
+  if (!s.souris && s.phase === 'enregistre' && noterPad(s.prise, pose, mesureMs(s.rythme))) clorePrise(s, sortie);
+}
+
+function rejouerSeul(s, sortie) {
+  const secondes = dureePrise(s.prise);
+  if (secondes < PRISE_MIN_S) { finir(s, sortie, false); return; }
+  s.phase = 'rejeu'; s.tour = 0;
+  s.rejeu = { u: 0, secondes, tours: REPRISES, robot: false };
+}
+
+function finir(s, sortie, complet) {
+  if (s.phase === 'fin') return;
+  s.phase = 'fin'; s.complet = complet;
+  if (complet && s.rejeu && s.rejeu.robot) sortie.saluer();
+  if (complet) sortie.son('final', 0, {});
+}
+
+/** Ce que le robot dit d'un rejeu : 'debut' quand le geste lui-même commence (durée d'un tour, nombre de tours), 'fin'
+ *  quand il finit. 'fin' sans 'debut' : il n'avait rien à rejouer. */
+function surRejeu(s, etat, secondes, tours, sortie) {
+  const attendu = s.phase === 'lache' && !s.seul;
+  if (etat === 'debut' && (attendu || (s.phase === 'rejeu' && !s.rejeu.robot && s.rate))) {
+    s.phase = 'rejeu'; s.tour = 0; s.rate = false;
+    s.rejeu = { u: -RETARD_MOTEURS_MS / 1000, secondes: secondes > 0 ? secondes : dureePrise(s.prise), tours: tours > 0 ? tours : REPRISES, robot: true };
+  } else if (etat === 'fin' && attendu) {
+    s.rate = true; sortie.dire(RATE);
+    rejouerSeul(s, sortie);
+  } else if (etat === 'fin' && s.phase === 'rejeu' && s.rejeu.robot) {
+    finir(s, sortie, true);
+  }
+}
+
+/** « Arrêter » : le robot s'arrête (un `replay` de zéro tour), le jumeau aussi. */
+function arreter(s, sortie) {
+  if (s.phase !== 'rejeu' && s.phase !== 'lache') return;
+  if (s.phase === 'lache' ? !s.seul : s.rejeu.robot) sortie.rejouer({ loops: 0 });
+  s.arrete = true;
+  finir(s, sortie, false);
+}
+
+/** « Encore » : le robot a gardé l'enregistrement, la même demande suffit ; sans lui, le jumeau rejoue seul. */
+function encore(s, sortie, robotLa) {
+  if (s.phase !== 'fin') return;
+  s.arrete = false; s.rate = false; s.complet = false;
+  if (!s.souris && robotLa && s.prise.fin !== null) {
+    s.phase = 'lache'; s.seul = false; s.attente = ATTENTE_REJEU_S;
+    sortie.rejouer(demandeRejeu(s.prise, REPRISES));
+  } else {
+    s.seul = true;
+    rejouerSeul(s, sortie);
+  }
+}
+
+/** Un pas de la séance. `pose` : ce que la souris et le clavier donnent à la tête (sans robot). */
+function avancerSeance(s, dt, pose, sortie) {
+  s.horloge += dt;
+  const parTemps = 60 / s.rythme.bpm;
+  if (s.phase === 'compte' || s.phase === 'enregistre') {
+    const avant = s.temps;
+    s.temps += dt / parTemps;
+    chaque(avant, s.temps, 0.5, (k) => {
+      if (k >= TEMPS_PAR_MESURE * 2) return;
+      const retard = (s.temps - k / 2) * parTemps;
+      if (k % 2 === 0) { sortie.son('tic', retard, { fort: k === 0 }); if (s.phase === 'compte') sortie.battre(k / 2 + 1); }
+      if (s.phase === 'enregistre') accompagner(s.rythme, k, retard, sortie);
+    });
+    if (s.phase === 'compte' && s.temps >= TEMPS_PAR_MESURE) {
+      // Le temps fort : la mesure commence. Le premier pad reçu désormais en porte l'heure.
+      s.phase = 'enregistre'; s.temps = Math.max(1e-9, s.temps - TEMPS_PAR_MESURE); s.prise = nouvellePrise();
+      sortie.battre(0);
+      sortie.son('tic', s.temps * parTemps, { fort: true });
+      accompagner(s.rythme, 0, s.temps * parTemps, sortie);
+    }
+    if (s.phase === 'enregistre' && s.souris) {
+      if (noterPad(s.prise, { ...pose, t: s.horloge * 1000 }, mesureMs(s.rythme))) clorePrise(s, sortie);
+    } else if (s.phase === 'enregistre' && s.temps >= TEMPS_PAR_MESURE + GARDE_PADS_S / parTemps) {
+      // Les pads ne viennent plus : la mesure se clôt sur le dernier reçu, s'il y a de quoi rejouer.
+      const pads = s.prise.pads, dernier = pads[pads.length - 1];
+      if (dernier && dernier.t - s.prise.debut >= PRISE_MIN_S * 1000) { s.prise.fin = dernier.t; clorePrise(s, sortie); }
+      else { s.souris = true; s.seul = true; s.phase = 'compte'; s.temps = 0; sortie.rendre(); sortie.dire('Reachy ne répond plus : dessine le geste à la souris.'); }
+    }
+  } else if (s.phase === 'lache') {
+    s.attente -= dt;
+    if (s.attente <= 0) {
+      if (!s.seul) { s.rate = true; sortie.dire(RATE); }
+      rejouerSeul(s, sortie);
+    }
+  } else if (s.phase === 'rejeu') {
+    const r = s.rejeu, avant = r.u, tour = r.secondes + COUTURE_S;
+    r.u += dt;
+    // Le métronome rebat la mesure à chaque tour, à l'heure où le robot la fait.
+    for (let n = 0; n < r.tours; n++) {
+      chaque(avant - n * tour, r.u - n * tour, r.secondes / 8, (k) => {
+        if (k < 0 || k >= 8) return;
+        const retard = r.u - n * tour - k * r.secondes / 8;
+        if (k % 2 === 0) sortie.son('tic', retard, { fort: k === 0 });
+        accompagner(s.rythme, k, retard, sortie);
+      });
+    }
+    s.tour = instantRejeu(r.u, r.secondes, r.tours).tour;
+    if (r.u >= dureeRejeu(r.secondes, r.tours) + (r.robot ? GARDE_FIN_S : 0)) finir(s, sortie, true);
+  }
+}
+
+/** Les mots de la fin, selon ce qui s'est passé. */
+function motsDeFin(s, robotConnu) {
+  const duree = secondesDites(dureePrise(s.prise)), amples = amplesDits(s.prise);
+  const geste = duree + ' de geste' + (amples ? ' : ' + amples + '.' : '.');
+  if (s.souris) return { sur: 'Sur le jumeau', titre: 'Ton geste, redessiné', detail: geste + ' La copie exacte se fait en tenant sa tête' + (robotConnu ? ' : « Nouvelle danse », et prends-la à deux mains.' : ' : ouvre l’app à côté de Reachy.') };
+  if (s.rate) return { sur: 'Sur le jumeau seulement', titre: 'Reachy n’a pas pu rejouer', detail: geste + ' Vérifie qu’il est réveillé et lâché, puis « Encore ».' };
+  if (s.arrete) return { sur: 'Arrêté', titre: 'Ta mesure', detail: geste + ' Il l’a gardée : « Encore » la lui fait rejouer.' };
+  return { sur: 'Recopié', titre: 'Ta mesure, refaite ' + (s.rejeu ? s.rejeu.tours : REPRISES) + ' fois', detail: geste + ' Il l’a gardée : « Encore » la lui fait rejouer.' };
+}
+
+/** La démonstration de l'accueil : une mesure où la tête tourne, se lève, penche et se déplace. */
+function priseDemo() {
+  const prise = nouvellePrise(), duree = 2.5;
+  for (let i = 0; i <= 75; i++) {
+    const x = i / 75, a = 2 * Math.PI * x;
+    noterPad(prise, {
+      t: x * duree * 1000, tourne: 15 * Math.sin(a) * (x > 0.5 ? 1 : 0.25), leve: 8 + 7 * Math.sin(2 * a - 1), penche: 7 * Math.sin(a + 0.6),
+      cote: 17 * Math.sin(2 * a) * (x < 0.55 ? 1 : 0.2), avant: 7 * Math.sin(a), haut: 6 * (1 - Math.cos(a)),
+      antG: x > 0.7 && x < 0.82 ? 8 : 0, antD: x > 0.2 && x < 0.32 ? 8 : 0, base: 0,
+    }, duree * 1000);
+  }
+  return prise;
+}
+const PRISE_DEMO = priseDemo();
+const DEMO = { main: 2.5, pause: 0.5, tours: 2, fin: 0.9 };
+const DEMO_S = DEMO.main + DEMO.pause + dureeRejeu(DEMO.main, DEMO.tours) + DEMO.fin;
+/** La pose de la démonstration à `t` secondes : menée par les fils, puis rejouée seul. */
+function poseDemo(t) {
+  if (t < DEMO.main) return { pose: lirePrise(PRISE_DEMO, t), fils: t > 0.3 && t < DEMO.main - 0.2 ? 1 : 0, croix: 1 };
+  const u = t - DEMO.main - DEMO.pause;
+  return { pose: poseRejeu(PRISE_DEMO, u, DEMO.main, DEMO.tours), fils: 0, croix: 0 };
+}
+
+// ===== Le son : le contexte et la sortie sont ceux de la boîte à outils, les instruments ceux de la page =====
+let bruit = null;   // une demi-seconde de bruit blanc : les balais, le charley, la claque
+function audio() {
+  const ctx = reachy.son.demarrer();
+  if (ctx && !bruit) {
+    bruit = ctx.createBuffer(1, ctx.sampleRate >> 1, ctx.sampleRate);
+    const grains = bruit.getChannelData(0);
+    for (let i = 0; i < grains.length; i++) grains[i] = Math.random() * 2 - 1;
+  }
+  return ctx;
+}
+function enveloppe(gain, quand, attaque, volume, duree) {
+  gain.gain.setValueAtTime(0.0001, quand);
+  gain.gain.exponentialRampToValueAtTime(volume, quand + attaque);
+  gain.gain.exponentialRampToValueAtTime(0.0001, quand + duree);
+}
+/** Une onde : forme, fréquence (Hz), instant, durée, volume ; `vers` la fait glisser. */
+function onde(forme, frequence, quand, duree, volume, options) {
+  const ctx = reachy.son.ctx, o = options || {}, osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = forme;
+  osc.frequency.setValueAtTime(frequence, quand);
+  if (o.vers) osc.frequency.exponentialRampToValueAtTime(o.vers, quand + (o.glisse || duree));
+  enveloppe(gain, quand, o.attaque || 0.006, volume, duree);
+  osc.connect(gain).connect(reachy.son.sortie);
+  osc.start(quand); osc.stop(quand + duree + 0.05);
+}
+function souffle(quand, duree, volume, passeHaut) {
+  const ctx = reachy.son.ctx, source = ctx.createBufferSource(), filtre = ctx.createBiquadFilter(), gain = ctx.createGain();
+  source.buffer = bruit;
+  filtre.type = 'highpass'; filtre.frequency.value = passeHaut;
+  enveloppe(gain, quand, 0.002, volume, duree);
+  source.connect(filtre).connect(gain).connect(reachy.son.sortie);
+  source.start(quand, Math.random() * 0.3); source.stop(quand + duree + 0.02);
+}
+const SONS = {
+  tic: (q, d) => onde('triangle', d.fort ? 1320 : 880, q, 0.08, d.fort ? 0.2 : 0.14),
+  coup: (q, d) => onde('sine', 128, q, 0.22, d.fort ? 0.42 : 0.3, { vers: 46, glisse: 0.12 }),
+  balai: (q) => souffle(q, 0.18, 0.05, 3200),
+  charley: (q, d) => souffle(q, 0.045, d.fort ? 0.05 : 0.026, 7000),
+  claque: (q) => { souffle(q, 0.1, 0.08, 1700); onde('triangle', 1050, q, 0.05, 0.035, { vers: 700 }); },
+  bois: (q) => { onde('sine', 990, q, 0.07, 0.13, { vers: 740 }); souffle(q, 0.02, 0.04, 2500); },
+  final: (q) => [262, 330, 392, 523].forEach((f, i) => onde(i ? 'sine' : 'triangle', f, q + i * 0.03, 2.2, i ? 0.06 : 0.14, { attaque: 0.02 })),
+};
+let retardPas = 0;   // secondes entre la fin du pas de logique en cours et maintenant
+/** Fait sonner un évènement de la séance, `retard` secondes après son instant : il part à sa place sur l'horloge audio. */
+function jouer(nom, retard, d) {
+  const ctx = reachy.son.ctx;
+  if (!ctx || ctx.state !== 'running') return;
+  SONS[nom](Math.max(ctx.currentTime, ctx.currentTime + DELAI_SON - retard - retardPas), d || {});
+}
+function basculerSon() {
+  $('btn-son').textContent = reachy.son.basculer() ? 'Son coupé' : 'Son';
+}
+
+// ===== La partie =====
+let rythme = RYTHMES[1];
+let seance = nouvelleSeance(rythme, true);
+let mode = 'accueil';       // 'accueil', 'accord', 'jeu'
+const tete = poseNeutre();  // la tête telle qu'elle est à l'instant : le dernier pad, ou ce que donnent la souris et le clavier
+const clavier = { gauche: false, droite: false, haut: false, bas: false, maj: false, penG: false, penD: false, antG: false, antD: false, pres: false, loin: false };
+const main = { tire: false, deplace: false, toujours: false, x0: 0, y0: 0, depuis: poseNeutre(), tenue: poseNeutre(), roule: 0, avance: 0, doigts: {} };   // la souris, le doigt
+const demo = { t: 0 };
+
+/** Ce que la souris, le doigt et le clavier veulent de la tête, sans robot. Pur. */
+function viser(touches, souris) {
+  const v = poseNeutre(), maj = touches.maj;
+  if (souris.tire) for (const k of ['tourne', 'leve', 'cote', 'haut']) v[k] = souris.tenue[k];
+  if (!maj) { v.tourne += ((touches.droite ? 1 : 0) - (touches.gauche ? 1 : 0)) * LACET_MAIN; v.leve += touches.haut ? TANGAGE_HAUT * 0.8 : 0; }
+  else { v.cote += ((touches.droite ? 1 : 0) - (touches.gauche ? 1 : 0)) * COTE_MAIN; v.haut += ((touches.haut ? 1 : 0) - (touches.bas ? 1 : 0)) * HAUT_MAIN; }
+  v.penche = borne(((touches.penG ? 1 : 0) - (touches.penD ? 1 : 0)) * ROULIS_MAIN * SENS_ROULIS + souris.roule, -ROULIS_MAIN, ROULIS_MAIN);
+  v.avant = borne(((touches.pres ? 1 : 0) - (touches.loin ? 1 : 0)) * AVANT_MAIN + souris.avance, -AVANT_MAIN, AVANT_MAIN);
+  v.antG = touches.antG || souris.antG ? ANTENNE_MAIN : 0;
+  v.antD = touches.antD || souris.antD ? ANTENNE_MAIN : 0;
+  v.tourne = borne(v.tourne, -LACET_MAIN, LACET_MAIN); v.leve = borne(v.leve, 0, TANGAGE_HAUT);
+  v.cote = borne(v.cote, -COTE_MAIN, COTE_MAIN); v.haut = borne(v.haut, -HAUT_MAIN, HAUT_MAIN);
+  return v;
+}
+
+function suivreMain(dt) {
+  const v = viser(clavier, main), vif = 1 - Math.exp(-dt / 0.06);
+  for (const k of CLES) tete[k] += (v[k] - tete[k]) * vif;
+  main.roule *= Math.exp(-dt / 0.5); main.avance *= Math.exp(-dt / 0.5);
+}
+
+function montrer(ecran) {
+  for (const id of ['accueil', 'accord']) $(id).hidden = id !== ecran;
+}
+
+let attente = null;   // le « Jouer » en cours : de quoi partir sans Reachy
+
+/** « Jouer », « Nouvelle danse » : avec Reachy dès qu'il y en a un, réveillé ou endormi (il se réveille) ; sinon à la souris. */
+function lancer() {
+  audio();
+  attente = reachy.lancer(PROFIL, {
+    attendre: (titre) => {
+      mode = 'accord';
+      montrer('accord');
+      $('accord-titre').textContent = titre;
+      disposer();
+    },
+    partir: (avecManette, raison) => {
+      if (raison === 'absent') annoncer('Reachy ne vient pas : dessine le geste à la souris.', 4);
+      partir(!avecManette);
+    },
+  });
+}
+
+function partir(souris) {
+  seance = nouvelleSeance(rythme, souris);
+  Object.assign(tete, poseNeutre());
+  Object.assign(main, { tire: false, roule: 0, avance: 0, antG: false, antD: false, doigts: {} });
+  mode = 'jeu';
+  montrer(null);
+  disposer();
+}
+
+/** La manette reprise par le robot en cours de mesure : on dessine à la souris. */
+function surManette(etat, avant) {
+  if (mode === 'jeu' && avant === 'oui' && etat === 'non' && !seance.souris && (seance.phase === 'compte' || seance.phase === 'enregistre')) {
+    annoncer('Reachy a repris son corps : dessine le geste à la souris.', 4);
+    partir(true);
+  }
+}
+
+function quitter() {
+  if (mode === 'jeu') arreter(seance, SORTIE);
+  mode = 'accueil';
+  reachy.manette(null);
+  $('decompte').hidden = true;
+  montrer('accueil');
+  disposer();
+}
+
+function changerRythme(cle) {
+  rythme = RYTHMES.find((r) => r.cle === cle) || rythme;
+  for (const b of document.querySelectorAll('.rythme')) b.setAttribute('aria-checked', String(b.dataset.rythme === rythme.cle));
+}
+
+function battre(numero) {
+  const d = $('decompte');
+  d.hidden = numero === 0;
+  if (numero) { d.style.setProperty('--temps', 60 / seance.rythme.bpm + 's'); d.innerHTML = '<span>' + numero + '</span>'; }
+}
+
+let annonceMinuteur = 0;
+function annoncer(texte, duree) {
+  const a = $('annonce');
+  a.textContent = texte;
+  a.classList.add('vu');
+  clearTimeout(annonceMinuteur);
+  annonceMinuteur = setTimeout(() => a.classList.remove('vu'), (duree || 2.4) * 1000);
+}
+
+/** Ce que la séance fait au-dehors : vers le robot, vers les oreilles, vers l'écran. */
+const SORTIE = {
+  rejouer: (demande) => reachy.rejouer(demande.start, demande.end, demande.loops),
+  rendre: () => reachy.manette(null),
+  son: (nom, retard, d) => jouer(nom, retard, d),
+  battre: (numero) => battre(numero),
+  saluer: () => { salut = 1; reachy.feter(SALUT); },
+  dire: (texte) => annoncer(texte, 5),
+};
+
+// ===== Le dessin =====
+const toile = $('toile'), ctx = toile.getContext('2d');
+let largeur = 0, hauteur = 0;
+const place = { jumeau: { x: 0, y: 0, e: 1 }, partition: null };   // où tient chaque chose, à cette taille
+const vue = { ...poseNeutre(), fils: 1, croix: 1, salut: 0 };      // le jumeau tel qu'il est dessiné
+const ressorts = [{ a: 0, v: 0 }, { a: 0, v: 0 }];                // le bout des antennes, qui suit avec un temps de retard
+let salut = 0;             // le salut de fin : 1 puis retombe
+let clin = 0, prochainClin = 2.5;
+const bouts = [[0, 0], [0, 0]];   // le bout de chaque antenne à l'écran, pour le doigt
+
+/** Le jumeau en haut, la partition dessous ; à l'accueil, la scène est au jumeau seul, au-dessus du texte. */
+function disposer() {
+  const etroit = largeur < 720, j = place.jumeau;
+  let haut = etroit ? 48 : 70, bas;
+  if (mode !== 'jeu') {
+    const contenu = $('accueil-contenu').getBoundingClientRect();
+    haut = 10; bas = Math.max(haut + 40, (mode === 'accueil' && contenu.height ? contenu.top : hauteur * 0.34) - 4);
+    place.partition = null;
+  } else {
+    const marge = borne(Math.min(largeur, hauteur) * 0.022, 8, 20), pied = etroit ? 76 : 82;
+    const h = borne(hauteur * (etroit ? 0.4 : 0.41), 150, 360), y = Math.max(haut + 60, hauteur - pied - h);
+    place.partition = { x: marge, y, l: Math.max(10, largeur - 2 * marge), h: Math.max(10, hauteur - pied - y) };
+    bas = y - 8;
+    $('fin').style.height = Math.max(0, y - 2) + 'px';
+    $('decompte').style.height = Math.max(0, y) + 'px';   // le décompte bat à côté du jumeau, sans le cacher
+  }
+  j.e = Math.max(0.2, Math.min((bas - haut) / 172, largeur / 190));
+  j.x = largeur / 2; j.y = bas - 6 * j.e;
+}
+
+function rectRond(c, x, y, l, h, r) {
+  r = Math.min(r, l / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y); c.arcTo(x + l, y, x + l, y + h, r); c.arcTo(x + l, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + l, y, r);
+  c.closePath();
+}
+
+/** Ce que le jumeau doit montrer à cet instant. */
+function cible() {
+  const s = seance;
+  if (mode !== 'jeu') return poseDemo(demo.t);
+  if (s.phase === 'compte' || s.phase === 'enregistre') return { pose: tete, fils: 1, croix: 1 };
+  if (s.phase === 'lache') return { pose: s.prise.pads.length ? lirePrise(s.prise, 0) : poseNeutre(), fils: 0, croix: s.seul ? 0 : 1, lent: true };
+  if (s.phase === 'rejeu') return { pose: poseRejeu(s.prise, s.rejeu.u, s.rejeu.secondes, s.rejeu.tours), fils: 0, croix: 0 };
+  return { pose: poseNeutre(), fils: 0, croix: 0, lent: true };
+}
+
+function animer(dt) {
+  const c = cible(), vif = 1 - Math.exp(-dt / (c.lent ? 0.3 : 0.035)), lent = 1 - Math.exp(-dt / 0.28);
+  const avant = vue.tourne + vue.cote;
+  for (const k of CLES) vue[k] += (c.pose[k] - vue[k]) * vif;
+  vue.fils += (c.fils - vue.fils) * lent; vue.croix += (c.croix - vue.croix) * lent;
+  salut = Math.max(0, salut - dt / 1.6);
+  vue.salut += (Math.min(1, salut * 2) - vue.salut) * lent;
+  // Les antennes : un ressort amorti, lancé par ce que fait la tête.
+  const elan = dt > 0 ? (vue.tourne + vue.cote - avant) / dt : 0;
+  for (const r of ressorts) {
+    r.v += (-190 * r.a - 11 * r.v - elan * 2.2) * dt;
+    r.a = borne(r.a + r.v * dt, -22, 22);
+  }
+  prochainClin -= dt;
+  if (prochainClin <= 0) { clin = 0.16; prochainClin = 2.2 + Math.random() * 3.5; }
+  clin = Math.max(0, clin - dt);
+}
+
+/** Où chaque valeur met le jumeau, en unités du dessin : le lacet fait glisser le visage et le resserre, le tangage le monte,
+ *  le roulis penche la tête, le côté et le haut la déplacent, l'avant la grossit, la base fait glisser sa marque. Pur. */
+function geometrie(v) {
+  const rad = Math.PI / 180, sl = Math.sin(borne(v.tourne, -50, 50) * rad), sb = Math.sin(borne(v.base, -80, 80) * rad);
+  return {
+    angle: -v.penche * SENS_ROULIS * rad * 1.1,
+    dx: borne(v.cote, -45, 45) * 0.8,
+    dy: -borne(v.haut, -45, 60) * 0.55,
+    echelle: 1 + borne(v.avant, -45, 45) / 150,
+    visageX: 13 * sl, resserre: 1 - 0.12 * Math.abs(sl),
+    visageY: -7 * borne(v.leve / TANGAGE_HAUT, -0.5, 1.3),
+    marqueX: 15 * sb, marqueL: Math.sqrt(Math.max(0.05, 1 - sb * sb)),
+    antG: borne(v.antG * 3, -40, 40), antD: borne(v.antD * 3, -40, 40),
+  };
+}
+
+function dessinerFond(c) {
+  const j = place.jumeau, fond = c.createLinearGradient(0, 0, 0, hauteur);
+  fond.addColorStop(0, '#191C20'); fond.addColorStop(1, '#121417');
+  c.fillStyle = fond;
+  c.fillRect(0, 0, largeur, hauteur);
+  // Un rond de lumière sur la scène, qui bat avec la mesure, et le sol qui le reçoit.
+  const s = seance, enMesure = mode === 'jeu' && (s.phase === 'compte' || s.phase === 'enregistre');
+  const bat = enMesure ? Math.exp(-(s.temps - Math.floor(s.temps)) * 3.5) * (Math.floor(s.temps) % TEMPS_PAR_MESURE === 0 ? 1 : 0.5) : 0;
+  const r = 150 * j.e, halo = c.createRadialGradient(j.x, j.y - 60 * j.e, 0, j.x, j.y - 60 * j.e, r);
+  halo.addColorStop(0, 'rgba(235, 237, 240, ' + (0.08 + 0.05 * bat) + ')'); halo.addColorStop(1, 'rgba(235, 237, 240, 0)');
+  c.fillStyle = halo;
+  c.fillRect(j.x - r, j.y - 60 * j.e - r, 2 * r, 2 * r);
+  c.save();
+  c.translate(j.x, j.y); c.scale(1, 0.16);
+  const sol = c.createRadialGradient(0, 0, 0, 0, 0, 96 * j.e);
+  sol.addColorStop(0, 'rgba(235, 237, 240, ' + (0.1 + 0.1 * bat) + ')'); sol.addColorStop(1, 'rgba(235, 237, 240, 0)');
+  c.fillStyle = sol;
+  c.beginPath(); c.arc(0, 0, 96 * j.e, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+
+/** Le jumeau de Reachy, de face : sa base et sa marque, son cou qui s'étire, sa tête, ses antennes, et les fils qui la mènent. */
+function dessinerJumeau(c, j, v) {
+  const e = j.e, g = geometrie(v), rad = Math.PI / 180;
+  const px = j.x + e * g.dx, py = j.y - e * (49 - 12 * v.salut) + e * g.dy, cos = Math.cos(g.angle), sin = Math.sin(g.angle), k = e * g.echelle;
+  const ecran = (lx, ly) => [px + k * (lx * cos - ly * sin), py + k * (lx * sin + ly * cos)];
+  const antenne = (cote, pousse, ressort) => {   // cote : -1 à gauche de l'écran, 1 à droite ; poussée, elle se couche vers le centre
+    const a = (cote * (17 - pousse * 0.9) + ressort) * rad, l = 23 * (1 - 0.28 * Math.min(1, Math.abs(pousse) / 35));
+    return [[cote * 20, -35], [cote * 20 + l * Math.sin(a), -35 - l * Math.cos(a)]];
+  };
+  const antennes = [antenne(-1, g.antG, ressorts[0].a), antenne(1, g.antD, ressorts[1].a)];
+
+  // L'ombre au sol, le cou, puis la base : sa marque glisse quand elle tourne.
+  c.fillStyle = 'rgba(0, 0, 0, 0.42)';
+  c.beginPath(); c.ellipse(j.x + e * g.dx * 0.35, j.y + e * 1.5, e * 33, e * 5.5, 0, 0, Math.PI * 2); c.fill();
+  // Le cou : il relie la base à la tête, et s'étire quand la main la déplace.
+  const cou = ecran(0, 2);
+  c.strokeStyle = '#2A2E34'; c.lineCap = 'round'; c.lineWidth = 13 * e;
+  c.beginPath(); c.moveTo(j.x, j.y - 46 * e); c.lineTo(cou[0], cou[1] - 2 * e); c.stroke();
+  c.save();
+  c.translate(j.x, j.y); c.scale(e, e);
+  c.fillStyle = '#C9CED6'; rectRond(c, -24, -48, 48, 46, 19); c.fill();
+  const robe = c.createLinearGradient(0, -50, 0, -6);
+  robe.addColorStop(0, '#F4F5F7'); robe.addColorStop(1, '#E6E9ED');
+  c.fillStyle = robe; rectRond(c, -24, -50, 48, 44, 19); c.fill();
+  c.fillStyle = '#B3B9C2';
+  for (const y of [-31, -26, -21]) { rectRond(c, g.marqueX - 7 * g.marqueL, y, 14 * g.marqueL, 2.4, 1.2); c.fill(); }
+  c.restore();
+
+  // La tête : les antennes derrière, la coque, puis le visage qui glisse avec le regard.
+  c.save();
+  c.translate(px, py); c.rotate(g.angle); c.scale(k, k);
+  c.lineCap = 'round'; c.strokeStyle = '#A0A7B1'; c.fillStyle = '#A0A7B1'; c.lineWidth = 2.6;
+  for (const [racine, bout] of antennes) {
+    c.beginPath(); c.moveTo(racine[0], racine[1]); c.lineTo(bout[0], bout[1]); c.stroke();
+    c.beginPath(); c.arc(bout[0], bout[1], 3.6, 0, Math.PI * 2); c.fill();
+  }
+  c.fillStyle = '#C3C8D0'; rectRond(c, -44, -35, 88, 40, 20); c.fill();
+  const coque = c.createLinearGradient(0, -38, 0, 2);
+  coque.addColorStop(0, '#FAFBFC'); coque.addColorStop(1, '#E3E6EA');
+  c.fillStyle = coque; rectRond(c, -44, -38, 88, 40, 20); c.fill();
+  const fx = g.visageX, fy = -18 + g.visageY + 5 * v.salut, ferme = clin > 0 || v.salut > 0.5 ? 0.12 : 1, sl = g.visageX / 13;
+  c.fillStyle = '#16181B';
+  rectRond(c, fx - 16, fy - 2.5, 32, 5, 2.5); c.fill();
+  for (const cote of [-1, 1]) {
+    const ox = fx + cote * 17 * g.resserre, rayon = 11 * (1 - 0.1 * cote * sl);
+    c.fillStyle = '#16181B';
+    c.beginPath(); c.ellipse(ox, fy, rayon, rayon * ferme, 0, 0, Math.PI * 2); c.fill();
+    if (ferme === 1) {
+      c.fillStyle = '#0C0D0F';
+      c.beginPath(); c.arc(ox + 1.5 * sl, fy + g.visageY * 0.12, rayon * 0.56, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#5B6370';
+      c.beginPath(); c.arc(ox - 3.6, fy - 3.6, 2.8, 0, Math.PI * 2); c.fill();
+    }
+  }
+  c.restore();
+  const b0 = ecran(antennes[0][1][0], antennes[0][1][1]), b1 = ecran(antennes[1][1][0], antennes[1][1][1]);
+  bouts[0] = b0; bouts[1] = b1;
+
+  // La croix du marionnettiste et ses fils : tendus quand la main mène, lâchés quand il rejoue seul.
+  if (v.croix < 0.02) return;
+  const cx = j.x + e * g.dx * 0.7, cy = j.y - e * (140 + 22 * (1 - v.croix)) + e * g.dy * 0.5, ca = g.angle * 0.7, cc = Math.cos(ca), cs = Math.sin(ca);
+  const croix = (lx, ly) => [cx + e * (lx * cc - ly * cs), cy + e * (lx * cs + ly * cc)];
+  const tension = lisse(v.fils);
+  c.save();
+  c.globalAlpha = lisse(v.croix);
+  c.lineCap = 'round';
+  for (const [de, vers] of [[croix(-38, 2), ecran(-37, -34)], [croix(38, 2), ecran(37, -34)], [croix(-25, 2), b0], [croix(25, 2), b1]]) {
+    const pend = [de[0], de[1] + e * 24], bas = [mele(pend[0], vers[0], tension), mele(pend[1], vers[1], tension)];
+    c.strokeStyle = 'rgba(235, 237, 240, ' + (0.2 + 0.36 * tension) + ')';
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(de[0], de[1]);
+    c.quadraticCurveTo((de[0] + bas[0]) / 2 + e * 7 * (1 - tension), (de[1] + bas[1]) / 2, bas[0], bas[1]);
+    c.stroke();
+    if (tension > 0.5) { c.fillStyle = 'rgba(235, 237, 240, ' + 0.8 * tension + ')'; c.beginPath(); c.arc(bas[0], bas[1], 1.7, 0, Math.PI * 2); c.fill(); }
+  }
+  c.translate(cx, cy); c.rotate(ca); c.scale(e, e);
+  c.strokeStyle = '#2C3037'; c.lineWidth = 4.6;
+  c.beginPath(); c.moveTo(-8, -9); c.lineTo(8, 9); c.stroke();
+  c.fillStyle = '#474D56'; rectRond(c, -41, -2.6, 82, 5.2, 2.6); c.fill();
+  c.fillStyle = 'rgba(235, 237, 240, 0.16)'; rectRond(c, -40, -2.6, 80, 1.6, 0.8); c.fill();
+  c.fillStyle = '#F2A541';
+  c.beginPath(); c.arc(0, 0, 3.3, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+
+/** Où en est la lecture sur la mesure, de 0 à 1 ; -1 : nulle part. */
+function lecture(s) {
+  if (s.phase === 'enregistre') {
+    const pads = s.prise.pads;
+    return pads.length ? borne((pads[pads.length - 1].t - s.prise.debut) / mesureMs(s.rythme), 0, 1) : 0;
+  }
+  if (s.phase !== 'rejeu') return -1;
+  const i = instantRejeu(s.rejeu.u, s.rejeu.secondes, s.rejeu.tours);
+  return i.couture === null ? borne(i.x / s.rejeu.secondes, 0, 1) : 1 - i.couture;
+}
+
+/** La partition et son cadran : une mesure, un ruban par valeur, en trois groupes ; à gauche, chaque valeur en direct. */
+function dessinerPartition(c, cadre) {
+  const s = seance, prise = s.prise, pads = prise.pads, petit = cadre.h < 250 || cadre.l < 460;
+  const marge = petit ? 92 : 150, hTitre = petit ? 11 : 15, hVoie = (cadre.h - 3 * hTitre - 4) / VOIES.length, demi = hVoie * 0.4;
+  const p = { x: cadre.x + marge, l: Math.max(10, cadre.l - marge - 6) }, ms = mesureMs(s.rythme), ou = lecture(s);
+  const direct = s.phase === 'compte' || s.phase === 'enregistre' ? tete : s.phase === 'rejeu' ? vue : null, hauts = s.phase === 'fin' || s.phase === 'lache' ? sommets(prise) : null;
+  const xDe = (pad) => p.x + p.l * borne((pad.t - prise.debut) / ms, 0, 1);
+
+  // La plaque, et le cadran en creux à sa gauche.
+  c.fillStyle = 'rgba(29, 32, 36, 0.66)'; rectRond(c, cadre.x, cadre.y, cadre.l, cadre.h, 11); c.fill();
+  c.strokeStyle = '#30353C'; c.lineWidth = 1; c.stroke();
+  c.fillStyle = 'rgba(18, 20, 23, 0.7)'; rectRond(c, cadre.x + 3, cadre.y + 3, marge - 8, cadre.h - 6, 8); c.fill();
+  c.textBaseline = 'middle';
+  let y = cadre.y + 2;
+  GROUPES.forEach(([titre, de, a], n) => {
+    // Le titre du groupe, et les quatre temps de la mesure.
+    c.font = '640 ' + (petit ? 8 : 9.5) + 'px ' + POLICE; c.fillStyle = '#8A919C'; c.textAlign = 'left';
+    c.fillText(titre.toUpperCase(), cadre.x + 10, y + hTitre / 2 + 1);
+    for (let t = 0; t < TEMPS_PAR_MESURE; t++) {
+      const x = Math.round(p.x + p.l * t / TEMPS_PAR_MESURE) + 0.5;
+      c.strokeStyle = t ? 'rgba(48, 53, 60, 0.6)' : '#474D56'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x, y + (n ? 2 : hTitre - 2)); c.lineTo(x, y + hTitre + hVoie * (a - de)); c.stroke();
+      if (!n) { c.fillStyle = '#8A919C'; c.fillText(String(t + 1), x + 4, y + hTitre / 2 + 1); }
+    }
+    y += hTitre;
+    for (let k = de; k < a; k++, y += hVoie) {
+      const voie = VOIES[k], yc = y + hVoie / 2, trace = (cle, sens) => {
+        if (pads.length < 2) return;
+        c.beginPath();
+        pads.forEach((pad, i) => { const px = xDe(pad), py = yc - sens * demi * borne(pad[cle] / voie.echelle, -1.15, 1.15); if (i) c.lineTo(px, py); else c.moveTo(px, py); });
+        c.strokeStyle = voie.couleur; c.lineWidth = petit ? 1.6 : 2; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke();
+        c.lineTo(xDe(pads[pads.length - 1]), yc); c.lineTo(xDe(pads[0]), yc); c.closePath();
+        c.globalAlpha = 0.15; c.fillStyle = voie.couleur; c.fill(); c.globalAlpha = 1;
+      };
+      c.strokeStyle = 'rgba(48, 53, 60, 0.9)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(p.x, Math.round(yc) + 0.5); c.lineTo(p.x + p.l, Math.round(yc) + 0.5); c.stroke();
+      trace(voie.cle, 1);
+      if (voie.autre) trace(voie.autre, -1);   // l'antenne de droite au-dessus de la ligne, celle de gauche en dessous
+      if (ou >= 0 && pads.length > 1) {
+        const pose = s.phase === 'rejeu' ? lirePrise(prise, ou * dureePrise(prise)) : pads[pads.length - 1];
+        const px = p.x + p.l * ou, py = yc - demi * borne(pose[voie.cle] / voie.echelle, -1.15, 1.15);
+        c.fillStyle = '#16181B'; c.beginPath(); c.arc(px, py, petit ? 4 : 5.2, 0, Math.PI * 2); c.fill();
+        c.fillStyle = voie.couleur; c.beginPath(); c.arc(px, py, petit ? 2.6 : 3.4, 0, Math.PI * 2); c.fill();
+      }
+      // Le cadran : le nom, et la valeur en direct (ou le sommet du geste, une fois fait).
+      c.font = '620 ' + (petit ? 9.5 : 12) + 'px ' + POLICE; c.fillStyle = voie.couleur; c.textAlign = 'left';
+      c.fillText(voie.nom, cadre.x + 10, yc);
+      const lu = direct || (hauts && pads.length ? hauts : null), gauche = lu && voie.autre ? lu[voie.autre] : 0, droite = lu ? lu[voie.cle] : 0;
+      // Les deux antennes : celle de gauche puis celle de droite ; à l'étroit, ou le geste fait, la plus poussée.
+      const texte = !lu ? '–' : voie.autre && direct && !petit ? formater(gauche, voie).replace(voie.unite, '') + ' · ' + formater(droite, voie)
+        : formater(Math.abs(gauche) > Math.abs(droite) ? gauche : droite, voie, !direct);
+      c.font = '700 ' + (petit ? 10.5 : 14) + 'px ui-monospace, "SF Mono", Menlo, monospace'; c.fillStyle = lu ? '#EBEDF0' : '#8A919C'; c.textAlign = 'right';
+      c.fillText(texte, cadre.x + marge - 12, yc);
+    }
+  });
+  // La tête de lecture.
+  if (ou >= 0) {
+    const x = p.x + p.l * ou, traine = c.createLinearGradient(x - 70, 0, x, 0);
+    traine.addColorStop(0, 'rgba(235, 237, 240, 0)'); traine.addColorStop(1, 'rgba(235, 237, 240, 0.09)');
+    c.fillStyle = traine; c.fillRect(Math.max(p.x, x - 70), cadre.y + hTitre, Math.min(70, x - p.x), cadre.h - hTitre - 4);
+    c.strokeStyle = '#EBEDF0'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(x, cadre.y + hTitre - 2); c.lineTo(x, cadre.y + cadre.h - 3); c.stroke();
+  }
+}
+
+const dits = {};
+function dire(id, texte) { if (dits[id] !== texte) { dits[id] = texte; $(id).textContent = texte; } }
+function cacher(id, cache) { if ($(id).hidden !== cache) $(id).hidden = cache; }
+
+/** Les mots de la phase en cours, et sa part faite (0 à 1). Pur. */
+function motsDePhase(s) {
+  if (s.phase === 'compte') return { texte: 'Prépare-toi : une mesure pour rien', avance: s.temps / TEMPS_PAR_MESURE };
+  if (s.phase === 'enregistre') return { texte: s.souris ? 'À toi : dessine le geste sur le jumeau' : 'À toi : une mesure, fais-le bouger', avance: Math.max(0, lecture(s)) };
+  if (s.phase === 'lache') return s.seul ? { texte: 'Le jumeau va refaire ton geste', avance: 0 } : { texte: 'Lâche Reachy : il va refaire ton geste', avance: 1 - s.attente / ATTENTE_REJEU_S };
+  if (s.phase === 'rejeu') return { texte: (s.rejeu.robot ? 'À lui : il refait ta mesure' : 'Le jumeau refait ta mesure') + ', tour ' + (s.tour + 1) + ' sur ' + s.rejeu.tours, avance: borne(s.rejeu.u / dureeRejeu(s.rejeu.secondes, s.rejeu.tours), 0, 1) };
+  return { texte: '', avance: 0 };
+}
+
+/** Les mots autour de la scène : à qui le tour, le rythme, le compte, les boutons du moment, la fin. */
+function afficher() {
+  const s = seance, enJeu = mode === 'jeu', fini = enJeu && s.phase === 'fin', mots = motsDePhase(s);
+  cacher('phase', !enJeu || fini); cacher('hud', !enJeu || fini);
+  if (enJeu && !fini) {
+    if ($('phase').dataset.phase !== s.phase) $('phase').dataset.phase = s.phase;
+    dire('phase-texte', mots.texte);
+    $('phase').style.setProperty('--avance', String(borne(mots.avance, 0, 1)));
+  }
+  if (enJeu) {
+    const temps = Math.min(TEMPS_PAR_MESURE, Math.floor(s.temps) + 1) + '/' + TEMPS_PAR_MESURE;
+    dire('hud-rythme', s.rythme.nom);
+    dire('hud-quoi', s.phase === 'compte' ? 'Décompte' : s.phase === 'enregistre' ? 'Temps' : fini ? 'Geste' : 'Tour');
+    dire('hud-compte', s.phase === 'compte' || s.phase === 'enregistre' ? temps : s.phase === 'rejeu' ? (s.tour + 1) + '/' + s.rejeu.tours : fini ? secondesDites(dureePrise(s.prise)) : '–');
+  }
+  cacher('btn-arret', !(enJeu && (s.phase === 'rejeu' || (s.phase === 'lache' && !s.seul))));
+  cacher('btn-mode', !(enJeu && s.souris && (s.phase === 'compte' || s.phase === 'enregistre')));
+  if (fini && $('fin').hidden) {
+    const mots = motsDeFin(s, reachy.etat.eveille !== null);
+    $('fin-sur').textContent = mots.sur; $('fin-titre').textContent = mots.titre; $('fin-detail').textContent = mots.detail;
+    $('decompte').hidden = true;
+  }
+  cacher('fin', !fini);
+}
+
+function dessiner() {
+  dessinerFond(ctx);
+  dessinerJumeau(ctx, place.jumeau, vue);
+  if (place.partition) dessinerPartition(ctx, place.partition);
+}
+
+// ===== La boucle : une logique à pas fixes =====
+let dernier = 0, reste = 0;
+function boucle(t) {
+  const dt = Math.min(0.1, (t - dernier) / 1000 || 0);
+  dernier = t;
+  reste += dt;
+  while (reste >= PAS) {
+    reste -= PAS; retardPas = reste;
+    if (mode === 'jeu') {
+      if (seance.souris) suivreMain(PAS);
+      avancerSeance(seance, PAS, tete, SORTIE);
+    }
+  }
+  if (mode !== 'jeu') demo.t = (demo.t + dt) % DEMO_S;
+  animer(dt);
+  afficher();
+  if (largeur > 0 && hauteur > 0) dessiner();
+  requestAnimationFrame(boucle);
+}
+
+// ===== Les entrées =====
+const TOUCHES = { ArrowLeft: 'gauche', ArrowRight: 'droite', ArrowUp: 'haut', ArrowDown: 'bas', Shift: 'maj', q: 'penG', d: 'penD', a: 'antG', e: 'antD', z: 'pres', s: 'loin' };
+function surTouche(e, enfoncee) {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key, fini = mode === 'jeu' && seance.phase === 'fin';
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k)) e.preventDefault();
+  if (TOUCHES[k]) clavier[TOUCHES[k]] = enfoncee;
+  if (!enfoncee || e.repeat) return;
+  if ((k === 'Enter' || k === ' ') && mode === 'accueil') lancer();
+  else if ((k === 'Enter' || k === ' ') && fini) rejouerEncore();
+  if (mode === 'accueil' && '123'.includes(k)) changerRythme(RYTHMES[+k - 1].cle);
+  if (k === 'n' && fini) lancer();
+  if (k === 'Escape' && mode === 'jeu') { if (fini || seance.phase === 'compte' || seance.phase === 'enregistre') quitter(); else arreter(seance, SORTIE); }
+  if (k === 'm') basculerSon();
+}
+
+function rejouerEncore() {
+  audio();
+  const robotLa = reachy.etat.eveille === true;
+  if (!seance.souris && !robotLa) annoncer(reachy.etat.eveille === null ? 'Sans Reachy : le jumeau refait ton geste seul.' : 'Reachy dort : le jumeau refait ton geste seul.', 4);
+  encore(seance, SORTIE, robotLa);
+}
+
+/** La souris, le doigt : on tire la tête du jumeau (tourner et lever ; avec Maj ou « Déplacer » : côté et haut), on pousse une antenne. */
+function surPointeur(e, etat) {
+  if (!(mode === 'jeu' && seance.souris && (seance.phase === 'compte' || seance.phase === 'enregistre'))) { main.tire = false; return; }
+  const cadre = toile.getBoundingClientRect(), x = e.clientX - cadre.left, y = e.clientY - cadre.top, ech = place.jumeau.e || 1;
+  if (etat === 'pose') {
+    const proche = [0, 1].find((i) => Math.hypot(x - bouts[i][0], y - bouts[i][1]) < Math.max(22, 14 * ech));
+    if (proche !== undefined) { main.doigts[e.pointerId] = proche; main[proche ? 'antD' : 'antG'] = true; return; }
+    Object.assign(main, { tire: true, deplace: main.toujours || e.shiftKey, x0: x, y0: y, depuis: { ...tete }, tenue: { ...tete } });
+    main.doigts[e.pointerId] = 'tete';
+    toile.setPointerCapture && toile.setPointerCapture(e.pointerId);
+  } else if (etat === 'bouge' && main.doigts[e.pointerId] === 'tete') {
+    const dx = (x - main.x0) / ech, dy = (y - main.y0) / ech;
+    if (main.deplace) { main.tenue.cote = main.depuis.cote + dx / 0.8; main.tenue.haut = main.depuis.haut - dy / 0.55; }
+    else { main.tenue.tourne = main.depuis.tourne + dx * LACET_MAIN / 55; main.tenue.leve = main.depuis.leve - dy * TANGAGE_HAUT / 45; }
+  } else if (etat === 'leve') {
+    const quoi = main.doigts[e.pointerId];
+    delete main.doigts[e.pointerId];
+    if (quoi === 'tete') main.tire = false;
+    else if (quoi !== undefined) main[quoi ? 'antD' : 'antG'] = false;
+  }
+}
+function surMolette(e) {
+  if (!(mode === 'jeu' && seance.souris)) return;
+  e.preventDefault();
+  const cran = Math.sign(e.deltaY || e.deltaX) * 4;
+  if (e.shiftKey) main.avance = borne(main.avance - cran, -AVANT_MAIN, AVANT_MAIN);
+  else main.roule = borne(main.roule + cran, -ROULIS_MAIN, ROULIS_MAIN);
+}
+
+window.addEventListener('keydown', (e) => surTouche(e, true));
+window.addEventListener('keyup', (e) => surTouche(e, false));
+window.addEventListener('blur', () => { for (const k in clavier) clavier[k] = false; });
+reachy.quand('manette', surManette);
+reachy.quand('pad', (pad) => {
+  if (mode !== 'jeu' || seance.souris) return;
+  const pose = poseDuPad(pad);
+  Object.assign(tete, pose);
+  surPadSeance(seance, pose, SORTIE);
+});
+reachy.quand('rejeu', ({ etat, secondes, tours }) => { if (mode === 'jeu') surRejeu(seance, etat, secondes, tours, SORTIE); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden || mode !== 'jeu') return;
+  if (seance.phase === 'rejeu' || seance.phase === 'lache') arreter(seance, SORTIE);   // page cachée : le robot s'arrête aussi
+  else if (seance.phase !== 'fin') quitter();
+});
+toile.addEventListener('pointerdown', (e) => surPointeur(e, 'pose'));
+toile.addEventListener('pointermove', (e) => surPointeur(e, 'bouge'));
+toile.addEventListener('pointerup', (e) => surPointeur(e, 'leve'));
+toile.addEventListener('pointercancel', (e) => surPointeur(e, 'leve'));
+toile.addEventListener('wheel', surMolette, { passive: false });
+$('jouer').addEventListener('click', lancer);
+$('rejouer').addEventListener('click', lancer);
+$('encore').addEventListener('click', rejouerEncore);
+$('btn-arret').addEventListener('click', () => arreter(seance, SORTIE));
+$('btn-mode').addEventListener('click', () => { main.toujours = !main.toujours; $('btn-mode').setAttribute('aria-pressed', String(main.toujours)); });
+$('btn-son').addEventListener('click', basculerSon);
+$('sans-robot').addEventListener('click', () => { if (attente) attente.sans(); });
+for (const b of document.querySelectorAll('.rythme')) b.addEventListener('click', () => changerRythme(b.dataset.rythme));
+
+reachy.toile(toile, { dprMax: DPR_MAX, surTaille: (l, h) => { largeur = l; hauteur = h; disposer(); } });
+reachy.pastilles({ robot: $('etat-robot'), manette: $('etat-manette'), tenue: TENUE });
+requestAnimationFrame(boucle);
+
+// ===== Autotest : les vraies fonctions de l'app, sur des situations connues =====
+/** Une séance menée sans écran ni robot : des pads à 30 par seconde, mesurés 80 ms avant d'arriver, à l'horloge du robot. */
+function piloter(options) {
+  const o = options || {}, journal = [], sons = [];
+  const sortie = {
+    rejouer: (demande) => { journal.push(reachy.message('replay', demande)); return true; },
+    rendre: () => journal.push({ type: 'manette', profile: null }),
+    son: (nom) => sons.push(nom), battre: () => {},
+    saluer: () => journal.push({ type: 'gesture', name: SALUT }),
+    dire: (texte) => journal.push({ type: 'dit', texte }),
+  };
+  const s = nouvelleSeance(o.rythme || RYTHMES[1], !!o.souris), ROBOT0 = 1794000000000, latence = 0.08;
+  const geste = o.geste || ((x) => ({ cote: 20 * Math.sin(2 * Math.PI * x / 2.5) }));   // d'une épaule à l'autre, sans changer d'angle
+  let prochain = 0;
+  const avancer = (secondes) => {
+    for (let n = Math.round(secondes / PAS); n > 0; n--) {
+      if (!s.souris && !o.sourd && (s.phase === 'compte' || s.phase === 'enregistre') && s.horloge >= prochain) {
+        prochain += 1 / 30;
+        const quand = s.horloge - latence;
+        surPadSeance(s, { ...poseNeutre(), ...geste(quand), t: ROBOT0 + quand * 1000 }, sortie);
+      }
+      avancerSeance(s, PAS, { ...poseNeutre(), ...geste(s.horloge) }, sortie);
+    }
+  };
+  return { s, journal, sons, sortie, avancer, geste, ROBOT0 };
+}
+
+window.__selfTest = () => {
+  const rejeux = (p) => p.journal.filter((m) => m.type === 'replay');
+  const types = (p) => p.journal.map((m) => m.type).join(' ');
+  // Une séance entière avec le robot : décompte, mesure, lâcher, rejeu, fin, « Encore ».
+  const p = piloter();
+  p.avancer(2.4);
+  const avantLaMesure = p.s.phase === 'compte' && p.journal.length === 0;
+  p.avancer(0.2);
+  const enMesure = p.s.phase;
+  p.avancer(2.5);
+  const lache = p.s.phase, demande = rejeux(p)[0] || {}, typesLache = types(p);
+  surRejeu(p.s, 'debut', 2.48, 4, p.sortie);
+  const departRejeu = p.s.rejeu.u;
+  p.avancer(0.15 + 1.0);
+  const aUneSeconde = poseRejeu(p.s.prise, p.s.rejeu.u, 2.48, 4).cote, vrai = p.geste((demande.start - p.ROBOT0) / 1000 + 1.0 * dureePrise(p.s.prise) / 2.48).cote;
+  p.avancer(dureeRejeu(2.48, 4) - 1.0 - 0.01);
+  const dernierTour = p.s.tour, encorePhase = p.s.phase;
+  surRejeu(p.s, 'fin', 0, 0, p.sortie);
+  const finPhase = p.s.phase, salue = p.journal.filter((m) => m.type === 'gesture').length, sonsDuRejeu = p.sons.filter((n) => n === 'tic').length;
+  encore(p.s, p.sortie, true);
+  const encoreDemande = rejeux(p)[1] || {};
+  // Le robot n'a rien à rejouer : 'fin' sans 'debut'.
+  const q = piloter(); q.avancer(5.2); surRejeu(q.s, 'fin', 0, 0, q.sortie);
+  // Le robot ne dit rien : vingt secondes, puis le jumeau seul.
+  const r = piloter(); r.avancer(5.2 + ATTENTE_REJEU_S + 0.1);
+  // « Arrêter » pendant que le robot rejoue.
+  const a = piloter(); a.avancer(5.2); surRejeu(a.s, 'debut', 2.5, 4, a.sortie); a.avancer(1); arreter(a.s, a.sortie);
+  // Sans robot : la souris, le jumeau seul.
+  const m = piloter({ souris: true }); m.avancer(5.1);
+  const sourisLache = m.s.phase; m.avancer(PAUSE_SEUL_S + 0.2);
+  const sourisRejeu = m.s.phase === 'rejeu' && !m.s.rejeu.robot; m.avancer(dureeRejeu(dureePrise(m.s.prise), REPRISES) + 0.1);
+  // Les pads s'arrêtent en pleine mesure.
+  const sourd = piloter({ sourd: true }); sourd.avancer(2.5 + 2.5 + GARDE_PADS_S + 0.2);
+  // La prise relue avec un pad sur deux : le même tracé.
+  const moitie = { debut: p.s.prise.debut, fin: p.s.prise.fin, pads: p.s.prise.pads.filter((_, i, tous) => i % 2 === 0 || i === tous.length - 1) };
+  let ecart = 0;
+  for (let i = 0; i <= 50; i++) ecart = Math.max(ecart, Math.abs(lirePrise(p.s.prise, i * 0.05).cote - lirePrise(moitie, i * 0.05).cote));
+  const prise3 = nouvellePrise();
+  for (const t of [1000, 1040, 1500, 2990, 3010, 3050]) noterPad(prise3, { ...poseNeutre(), t, cote: t / 100 }, 2000);
+  const g0 = geometrie(poseNeutre()), g = (cle, v) => geometrie({ ...poseNeutre(), [cle]: v });
+  // Un pad tel que le tableau de bord le poste, lu par la boîte à outils puis par la page (la manette tenue, le temps de le lire).
+  const tenue = reachy.etat.manette;
+  reachy.etat.manette = 'oui';
+  window.dispatchEvent(new MessageEvent('message', { source: window.parent, data: { reachy: 1, type: 'pad', t: 1794000001234.5, body: 10, head: { yaw: 5, pitch: 12, roll: -3, x: 4, y: 20, z: -6 }, antennas: { left: 7, right: 2 } } }));
+  const pad = poseDuPad(reachy.pad);
+  reachy.etat.manette = tenue;
+  let sansRobot = null;
+  reachy.lancer(PROFIL, { partir: (avecManette, raison) => { sansRobot = !avecManette && raison === 'aucun'; } });
+  const tour = instantRejeu(2.5 + 0.2, 2.5, 4), tour2 = instantRejeu(2.9 + 1.0, 2.5, 4);
+  return [
+    ['Avant la mesure : rien n’est parti vers le robot', avantLaMesure, 1, 0],
+    ['Au temps fort, la mesure s’enregistre', enMesure === 'enregistre', 1, 0],
+    ['La mesure pleine : on attend qu’il la rejoue', lache === 'lache', 1, 0],
+    ['Dans l’ordre : la manette rendue, puis replay, rien d’autre', typesLache === 'manette replay', 1, 0],
+    ['replay : quatre tours', demande.loops, REPRISES, 0],
+    ['Les bornes sont séparées d’une mesure (ms)', demande.end - demande.start, 2500, 40],
+    ['Le début est l’heure du pad (mesuré 80 ms plus tôt), pas celle de la page', demande.start - p.ROBOT0, 2420, 40],
+    ['La fin est l’heure d’un pad reçu', p.s.prise.pads.some((x) => x.t === demande.end), 1, 0],
+    ['Au début du rejeu : le jumeau part avec le retard des moteurs', departRejeu, -RETARD_MOTEURS_MS / 1000, 1e-9],
+    ['À une seconde du rejeu, le jumeau est où était la tête (mm)', aUneSeconde, vrai, 1.2],
+    ['Juste avant la fin : quatrième tour', dernierTour, 3, 0],
+    ['Tant que le robot ne dit pas la fin, il rejoue encore', encorePhase === 'rejeu', 1, 0],
+    ['Le robot dit la fin : la fin', finPhase === 'fin', 1, 0],
+    ['Il salue une fois, à la toute fin', salue, 1, 0],
+    ['Le métronome rebat chaque tour : 4 + 4 + 16 temps', sonsDuRejeu, 24, 0],
+    ['Encore : la même demande, sans rendre la manette', encoreDemande.start === demande.start && encoreDemande.end === demande.end && p.journal[p.journal.length - 1].type === 'replay', 1, 0],
+    ['Ni regard ni antennes de toute la séance', p.journal.every((x) => ['manette', 'replay', 'gesture', 'dit'].includes(x.type)), 1, 0],
+    ['Une fin sans début : le jumeau rejoue seul', q.s.phase === 'rejeu' && !q.s.rejeu.robot && q.s.rate, 1, 0],
+    ['Une fin sans début : c’est dit', q.journal.some((x) => x.type === 'dit' && x.texte === RATE), 1, 0],
+    ['Vingt secondes sans nouvelle : le jumeau rejoue seul', r.s.phase === 'rejeu' && !r.s.rejeu.robot && r.s.rate, 1, 0],
+    ['Un début tardif recale le jumeau sur le robot', (surRejeu(r.s, 'debut', 2.5, 4, r.sortie), r.s.rejeu.robot && !r.s.rate), 1, 0],
+    ['Arrêter : replay de zéro tour', (rejeux(a)[1] || {}).loops, 0, 0],
+    ['Arrêter : fin, sans salut', a.s.phase === 'fin' && a.s.arrete && !a.journal.some((x) => x.type === 'gesture'), 1, 0],
+    ['Arrêté : une fin tardive ne change rien', (surRejeu(a.s, 'fin', 0, 0, a.sortie), a.s.phase === 'fin'), 1, 0],
+    ['Souris : la mesure pleine, un instant, puis le jumeau', sourisLache === 'lache' && sourisRejeu, 1, 0],
+    ['Souris : rien ne part vers le robot', m.journal.length, 0, 0],
+    ['Souris : la fin dit où se fait la copie exacte', m.s.phase === 'fin' && motsDeFin(m.s, true).detail.includes('en tenant sa tête'), 1, 0],
+    ['Pads arrêtés avant la mesure : on dessine à la souris', sourd.s.souris && sourd.journal.some((x) => x.type === 'dit'), 1, 0],
+    ['Un pad sur deux : le même tracé (mm)', ecart, 0, 1.5],
+    ['Prise : le début est le premier pad', prise3.debut, 1000, 0],
+    ['Prise : la fin est le premier pad une mesure plus tard', prise3.fin, 3010, 0],
+    ['Prise : le pad d’après n’y entre pas', prise3.pads.length, 5, 0],
+    ['Prise : entre deux pads, à proportion', lirePrise(prise3, 0.27).cote, 12.7, 1e-6],
+    ['Rejeu : la couture ramène vers la première pose', tour.couture, 0.5, 1e-9],
+    ['Rejeu : deuxième tour, une seconde dedans', tour2.tour + tour2.x, 2, 1e-9],
+    ['Rejeu : quatre tours et trois coutures (s)', dureeRejeu(2.5, 4), 11.2, 1e-9],
+    ['Rejeu : fini après le dernier tour', instantRejeu(11.3, 2.5, 4).fini, 1, 0],
+    ['Pad : la tête dans la pièce = tête + base (°)', pad.tourne, 15, 0],
+    ['Pad : le côté vient de head.y (mm)', pad.cote, 20, 0],
+    ['Pad : l’antenne à gauche de l’écran est sa droite', pad.antG, 2, 0],
+    ['Pad : l’heure du robot est gardée', pad.t, 1794000001234.5, 0],
+    ['Jumeau : le côté déplace la tête, pas le visage', g('cote', 20).dx - g0.dx + Math.abs(g('cote', 20).visageX), 16, 1e-9],
+    ['Jumeau : le lacet fait glisser le visage, pas la tête', g('tourne', 30).visageX + Math.abs(g('tourne', 30).dx), 6.5, 1e-9],
+    ['Jumeau : le haut la monte', g('haut', 20).dy, -11, 1e-9],
+    ['Jumeau : l’avant la grossit', g('avant', 30).echelle, 1.2, 1e-9],
+    ['Jumeau : le roulis la penche', g('penche', 10).angle, -0.192, 1e-3],
+    ['Jumeau : le tangage monte le visage', g('leve', 26).visageY, -7, 1e-9],
+    ['Jumeau : la base fait glisser sa marque', g('base', 30).marqueX, 7.5, 1e-9],
+    ['Cadran : +12°', formater(12.4, VOIES[0]) === '+12°', 1, 0],
+    ['Cadran : −8 mm', formater(-8.2, VOIES[3]) === '−8 mm', 1, 0],
+    ['Cadran : le sommet d’un geste', formater(17.6, VOIES[3], true) === '±18 mm' && formater(0.2, VOIES[3], true) === '0 mm', 1, 0],
+    ['Le plus ample du geste est dit', amplesDits(p.s.prise).startsWith('côté ±'), 1, 0],
+    ['Métronome : une mesure de Balade dure 2,5 s', mesureMs(RYTHMES[1]), 2500, 1e-9],
+    ['Souris : Maj + flèche déplace de côté', viser({ ...clavier, maj: true, droite: true }, main).cote, COTE_MAIN, 0],
+    ['Souris : la flèche seule tourne', viser({ ...clavier, droite: true }, main).tourne, LACET_MAIN, 0],
+    ['replay : tours bornés à 8', reachy.message('replay', { start: 1, end: 2, loops: 99 }).loops, 8, 0],
+    ['replay : zéro tour arrête', reachy.message('replay', { loops: 0 }).loops, 0, 0],
+    ['Arrêter demande zéro tour sans bornes', JSON.stringify(rejeux(a)[1]) === JSON.stringify({ reachy: 1, type: 'replay', start: 0, end: 0, loops: 0 }), 1, 0],
+    ['Le profil demandé est un de ceux de la boîte à outils', reachy.PROFILS.includes(PROFIL), 1, 0],
+    ['Le salut est un geste que le robot connaît', reachy.message('gesture', { name: SALUT }) !== null, 1, 0],
+    ['Sans tableau de bord, « Jouer » part à la souris', sansRobot === true, 1, 0],
+    ['Émotion inconnue refusée', reachy.message('emotion', { name: 'x' }) === null, 1, 0],
+    ['Manette rendue : profil nul permis', reachy.message('manette', { profile: null }).profile === null, 1, 0],
+    ['Démonstration : elle boucle', poseDemo(DEMO_S - 0.01).fils + poseDemo(1).fils, 1, 0],
+  ];
+};
+</script>
+</body>
+</html>
