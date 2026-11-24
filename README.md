@@ -17,10 +17,9 @@
   <a href="#safety-and-security">Safety</a>
 </p>
 
-<!-- A few seconds of the demo, silent: cut from the film itself. -->
-<p align="center">
-  <img src="docs/media/demo.webp" width="100%" alt="A few seconds of the demo: the robot says what its camera sees, the studio previews a move in 3D, Claude writes an app, the robot's head held in both hands steers a night flight between skyscrapers, its body turned by hand steers a ski slalom, and it performs a scene.">
-</p>
+<!-- The demo, three minutes with sound. GitHub shows a player only for an address alone on its line. -->
+
+https://github.com/user-attachments/assets/fe85ce37-930b-4817-9439-237fd765177f
 
 Wiggle an antenna: the robot wakes up, listens, answers out loud and moves while it speaks. On your Mac, a dashboard
 shapes its character, stages little plays, and builds games you play with the robot itself in your hands.
